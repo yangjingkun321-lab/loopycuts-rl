@@ -1,0 +1,190 @@
+GitHub / Git 仓库与版本基线（2026-08-14）
+========================================
+
+1. 当前 Python 强化学习主仓库
+--------------------------------
+Repository:
+https://github.com/yangjingkun321-lab/loopycuts-rl
+
+Remote:
+git@github.com:yangjingkun321-lab/loopycuts-rl.git
+
+Branch:
+main
+
+Frozen commit:
+38f901622d23051726bc0daef0fd54d52ada3e4d
+
+状态:
+- 本地 main 已与 origin/main 同步；
+- working tree clean；
+- 这是当前 Phase 2E-B 的 Python RL 事实基线；
+- 包含 bridge / envs / evaluation / finalization / observation /
+  policies / rewards / runtime / tests / frozen manifests /
+  project-state handoff document。
+
+新对话优先使用该 commit 查看 Python RL 当前代码。
+
+
+2. LoopyCuts 前处理仓库
+------------------------
+Repository:
+https://github.com/yangjingkun321-lab/LoopyCuts-Preprocessor
+
+Remote:
+git@github.com:yangjingkun321-lab/LoopyCuts-Preprocessor.git
+
+Branch:
+loopycuts-preprocessing-tools
+
+Local HEAD:
+3505cee40699c803006714d443658f09086c50a2
+
+当前本地状态:
+- branch 跟踪 origin/loopycuts-preprocessing-tools；
+- 有未跟踪文件:
+  tools/convert_nrosy_to_loopycuts.py
+
+重要:
+GitHub 中已有 branch/commit 是有用的前处理代码基线，但本地这个
+未跟踪文件不一定已经在 GitHub 中。如果后续需要该脚本，应优先查看
+用户上传的当前 preprocessor 源码压缩包或本地真实文件。
+
+历史 remote:
+git@github.com:yangjingkun321-lab/GenClean.git
+
+历史 Repository:
+https://github.com/yangjingkun321-lab/GenClean
+
+这个仓库可能包含更早期的预处理/清理代码，可作为历史参考，但不能
+自动视为当前 preprocessor 的事实基线。
+
+
+3. 之前的 LoopyCuts 复现仓库
+------------------------------
+Repository:
+https://github.com/yangjingkun321-lab/LC-Research-Reproduction
+
+Remote:
+git@github.com:yangjingkun321-lab/LC-Research-Reproduction.git
+
+Branch:
+main
+
+HEAD:
+06c96a8ac91a2b42f621ca1142a93382b6307e0e
+
+状态:
+- main 跟踪 origin/main；
+- working tree clean。
+
+用途:
+- 保存之前 LoopyCuts 项目复现、构建和研究过程的代码/资料；
+- 新对话可以用它理解此前 LoopyCuts reproduction 工作；
+- 不能用它替代当前正在修改的 /home/yjk/codes/LoopyCuts 工作树，
+  因为当前 Stage1/Stage2/RL server 改动比这个历史仓库更新。
+
+
+4. 原始 LoopyCuts 上游仓库
+---------------------------
+Repository:
+https://github.com/mlivesu/LoopyCuts
+
+本地路径:
+/home/yjk/codes/LoopyCuts
+
+当前 branch:
+loopycuts-reproduction-fixes
+
+Local HEAD:
+03bcff8b09ce6c03b75a1ee59e43bc5aeac3730c
+
+Remote:
+https://github.com/mlivesu/LoopyCuts.git
+
+非常重要:
+当前 /home/yjk/codes/LoopyCuts 不是 clean upstream checkout。
+它包含大量当前研究所需的本地修改和未跟踪文件，例如：
+
+- Stage1 tracing / sharp-feature patches；
+- volumetric_cutter/batch.cpp/.h 修改；
+- cut.cpp / finalization.cpp / main.cpp 修改；
+- mesh_extractor.h / subdivision_helper.cpp 修改；
+- volumetric_cutter/cut_step.cpp/.h；
+- volumetric_cutter/rl_server.cpp/.h；
+- external order / RL server / FINALIZE_EVAL / headless 相关修改。
+
+因此：
+https://github.com/mlivesu/LoopyCuts 只能代表作者原始代码，
+不能代表当前本地 Stage2 RL 版本。
+
+新对话若分析当前 RL/C++ 接口，必须优先使用：
+- LoopyCuts_current_source_*.tar.gz；
+- 或用户提供的当前本地源码；
+而不是只看 upstream GitHub。
+
+后续建议把当前 C++ 修改单独提交到用户自己的 fork/研究仓库，
+但在完成代码清理前不要直接把当前 dirty working tree 整体 push。
+
+
+5. RL 参考仓库
+---------------
+ASMR
+Repository:
+https://github.com/NiklasFreymuth/ASMR
+Local HEAD:
+be6c257ba8f9cee2d83330f1a38e6f92d642e33e
+Branch:
+main
+状态:
+clean。
+
+AMBER
+Repository:
+https://github.com/NiklasFreymuth/AMBER
+Local HEAD:
+92ec0e40a94a10632b77b2c4718daec0828ed3d1
+Branch:
+main
+状态:
+clean。
+
+SD-SAC
+Repository:
+https://github.com/coldsummerday/SD-SAC
+Local HEAD:
+006809db08513fbeea2bfaecea1c03b59c3bb0d5
+Branch:
+main
+状态:
+clean。
+
+Tianshou
+Repository:
+https://github.com/thu-ml/tianshou
+Local HEAD:
+f2402056b03acafeedf2518a5088db55add004ab
+Branch:
+master
+状态:
+clean。
+
+当前 RL 环境使用的 Tianshou source:
+ /home/yjk/codes/rl_refs/tianshou
+
+
+新对话对这些仓库的使用优先级
+------------------------------
+1. 当前 loopycuts-rl GitHub frozen commit
+   38f901622d23051726bc0daef0fd54d52ada3e4d
+2. 当前上传的 LoopyCuts_current_source_*.tar.gz
+3. 当前上传的 loopycuts_preprocessor_current_*.tar.gz
+4. LC-Research-Reproduction 历史复现仓库
+5. LoopyCuts-Preprocessor GitHub branch
+6. 原始 mlivesu/LoopyCuts
+7. ASMR / AMBER / SD-SAC / Tianshou 作为算法和实现参考
+
+原因:
+当前 C++ LoopyCuts 工作树有重要未提交修改，所以 GitHub upstream
+不是最新当前代码；Python RL repo 则已经有准确 frozen commit，可以
+直接作为版本事实基线。
