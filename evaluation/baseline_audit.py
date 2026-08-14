@@ -25,6 +25,10 @@ from bridge.cpp_client import (
     LoopyCutsClient,
 )
 
+from dataset_tools.loop_metadata import (
+    parse_loop_metadata,
+)
+
 from evaluation.episode_runner import (
     run_episode,
 )
@@ -554,6 +558,252 @@ def validate_model_files(
     )
 
 
+def validate_initial_action_space(
+    *,
+    model,
+    row,
+    loop_file,
+    client,
+):
+    """
+    Validate the initial authoritative C++ action space without assuming
+    that Dataset Split V2's static actionable_nonconvex count must equal
+    the runtime Stage-2 action count.
+
+    Dataset Split V2 stores static Stage-1/_loop.txt corpus metadata.
+    The C++ RL server emits runtime legality after Stage-2
+    initialization. Initialization may legitimately consume a static
+    non-convex loop (for example by marking it used/TOP_RELEVANT).
+
+    Authoritative legality remains client.actions.
+    """
+
+    if client.state is None:
+        raise RuntimeError(
+            f"{model}: client initialized without state"
+        )
+
+    initial_actions = [
+        int(loop_id)
+        for loop_id in client.actions
+    ]
+
+    # --------------------------------------------------------------
+    # Invariant 1:
+    # C++ STATE.available and the authoritative ACTIONS payload must
+    # agree exactly.
+    # --------------------------------------------------------------
+
+    state_available = int(
+        client.state[
+            "available"
+        ]
+    )
+
+    if (
+        state_available
+        !=
+        len(initial_actions)
+    ):
+        raise RuntimeError(
+            f"{model}: C++ initial action-space protocol regression. "
+            f"STATE.available={state_available}, "
+            f"len(ACTIONS)={len(initial_actions)}"
+        )
+
+    # Duplicate IDs in ACTIONS would also be a protocol regression.
+    if (
+        len(set(initial_actions))
+        !=
+        len(initial_actions)
+    ):
+        raise RuntimeError(
+            f"{model}: C++ initial ACTIONS contains duplicate loop IDs: "
+            f"{initial_actions}"
+        )
+
+    # --------------------------------------------------------------
+    # Reconstruct only STATIC Stage-1 non-convex IDs from _loop.txt.
+    #
+    # This is descriptive metadata only. It is NOT used to determine
+    # runtime legality.
+    # --------------------------------------------------------------
+
+    metadata = (
+        parse_loop_metadata(
+            loop_file
+        )
+    )
+
+    static_nonconvex_ids = {
+        int(loop.loop_id)
+        for loop in metadata
+        if loop.loop_type
+        in {
+            "CONCAVE",
+            "REGULAR",
+        }
+    }
+
+    manifest_static_actionable = int(
+        row[
+            "actionable_nonconvex"
+        ]
+    )
+
+    # Dataset Split V2 currently has singular=0 for the frozen corpus,
+    # so the parsed CONCAVE+REGULAR count must still match the manifest.
+    if (
+        len(static_nonconvex_ids)
+        !=
+        manifest_static_actionable
+    ):
+        raise RuntimeError(
+            f"{model}: frozen manifest/static loop metadata regression. "
+            f"Manifest actionable_nonconvex="
+            f"{manifest_static_actionable}, "
+            f"parsed static nonconvex="
+            f"{len(static_nonconvex_ids)}"
+        )
+
+    action_ids = set(
+        initial_actions
+    )
+
+    # --------------------------------------------------------------
+    # Invariant 2:
+    # The C++ RL server must never expose an initially legal action
+    # that is not a static non-convex loop.
+    # --------------------------------------------------------------
+
+    extra_actions = sorted(
+        action_ids
+        -
+        static_nonconvex_ids
+    )
+
+    if extra_actions:
+        raise RuntimeError(
+            f"{model}: C++ initial action-space regression. "
+            "ACTIONS contains loop IDs outside the static "
+            f"non-convex set: {extra_actions}"
+        )
+
+    # --------------------------------------------------------------
+    # Invariant 3:
+    # A static non-convex loop missing from runtime ACTIONS is allowed
+    # only when C++ runtime state gives an explicit base-legality
+    # reason: used, reverted, or Nico_bug.
+    # --------------------------------------------------------------
+
+    missing_actions = sorted(
+        static_nonconvex_ids
+        -
+        action_ids
+    )
+
+    used_ids = {
+        int(loop_id)
+        for loop_id in client.used
+    }
+
+    reverted_ids = {
+        int(loop_id)
+        for loop_id in client.reverted
+    }
+
+    nico_bug_ids = {
+        int(loop_id)
+        for loop_id in client.nico_bug
+    }
+
+    top_relevant_ids = {
+        int(loop_id)
+        for loop_id in client.top_relevant
+    }
+
+    runtime_excluded_ids = (
+        used_ids
+        |
+        reverted_ids
+        |
+        nico_bug_ids
+    )
+
+    unexplained_missing = sorted(
+        set(missing_actions)
+        -
+        runtime_excluded_ids
+    )
+
+    if unexplained_missing:
+        raise RuntimeError(
+            f"{model}: unexplained initial action-space regression. "
+            f"Static non-convex but absent from C++ ACTIONS="
+            f"{unexplained_missing}; "
+            f"USED={sorted(used_ids)}; "
+            f"REVERTED={sorted(reverted_ids)}; "
+            f"NICO_BUG={sorted(nico_bug_ids)}; "
+            f"TOP_RELEVANT={sorted(top_relevant_ids)}"
+        )
+
+    # Legitimate initialization-time difference.
+    # Example currently verified in train split:
+    # des6 loop 74 is static REGULAR but initialization marks it
+    # used=true and TOP_RELEVANT=true.
+    if missing_actions:
+        print()
+        print(
+            "INITIAL ACTION-SPACE NOTE:"
+        )
+        print(
+            "  manifest_static_nonconvex:",
+            manifest_static_actionable,
+        )
+        print(
+            "  cpp_initial_actions:",
+            len(initial_actions),
+        )
+        print(
+            "  explained_missing:",
+            missing_actions,
+        )
+        print(
+            "  used_missing:",
+            sorted(
+                set(missing_actions)
+                &
+                used_ids
+            ),
+        )
+        print(
+            "  reverted_missing:",
+            sorted(
+                set(missing_actions)
+                &
+                reverted_ids
+            ),
+        )
+        print(
+            "  nico_bug_missing:",
+            sorted(
+                set(missing_actions)
+                &
+                nico_bug_ids
+            ),
+        )
+        print(
+            "  top_relevant_missing:",
+            sorted(
+                set(missing_actions)
+                &
+                top_relevant_ids
+            ),
+        )
+
+    return initial_actions
+
+
 def aggregate_selection_metrics(
     *,
     initial_state,
@@ -951,31 +1201,18 @@ def run_model(
             client.state
         )
 
-        initial_actions = list(
-            client.actions
+        initial_actions = (
+            validate_initial_action_space(
+                model=model,
+                row=row,
+                loop_file=loops,
+                client=client,
+            )
         )
 
         initial_actionable = len(
             initial_actions
         )
-
-        if (
-            initial_actionable
-            !=
-            int(
-                row[
-                    "actionable_nonconvex"
-                ]
-            )
-        ):
-            raise RuntimeError(
-                f"{model}: manifest/action-space "
-                "regression. "
-                f"Manifest actionable="
-                f"{row['actionable_nonconvex']}, "
-                f"C++ ACTIONS="
-                f"{initial_actionable}"
-            )
 
         selection_start = (
             time.perf_counter()
