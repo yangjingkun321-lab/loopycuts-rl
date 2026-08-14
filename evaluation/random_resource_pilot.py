@@ -3,8 +3,24 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import subprocess
+import sys
 import time
 from pathlib import Path
+
+
+PROJECT_ROOT = (
+    Path(__file__)
+    .resolve()
+    .parents[1]
+)
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(
+        0,
+        str(PROJECT_ROOT),
+    )
+
 
 from bridge.cpp_client import LoopyCutsClient
 from evaluation.baseline_audit import (
@@ -139,6 +155,14 @@ def main():
 
     stop_reason = None
 
+    current_step = None
+    current_action = None
+    current_before_state = None
+
+    interrupted_step = None
+    interrupted_action = None
+    interrupted_before_state = None
+
     with LoopyCutsClient(
         executable=EXECUTABLE,
         mesh_file=Path(
@@ -221,6 +245,18 @@ def main():
                     f"tets={before['tets']} "
                     f"mm_polys={before['mm_polys']}",
                     flush=True,
+                )
+
+                current_step = int(
+                    step_index
+                )
+
+                current_action = int(
+                    action
+                )
+
+                current_before_state = dict(
+                    before
                 )
 
                 t0 = (
@@ -321,6 +357,10 @@ def main():
                     item
                 )
 
+                current_step = None
+                current_action = None
+                current_before_state = None
+
                 print(
                     f"END   "
                     f"step={step_index} "
@@ -354,6 +394,72 @@ def main():
                     )
                     break
 
+        except KeyboardInterrupt:
+            stop_reason = (
+                "MANUAL_INTERRUPT_DURING_STEP"
+            )
+
+            interrupted_step = (
+                current_step
+            )
+
+            interrupted_action = (
+                current_action
+            )
+
+            interrupted_before_state = (
+                current_before_state
+            )
+
+            stats = monitor.snapshot()
+
+            print()
+            print("=" * 88)
+            print(
+                "MANUAL INTERRUPT DURING STEP"
+            )
+            print("=" * 88)
+            print(
+                "interrupted_step:",
+                interrupted_step,
+            )
+            print(
+                "interrupted_action:",
+                interrupted_action,
+            )
+            print(
+                "completed_steps:",
+                len(trajectory),
+            )
+            print(
+                "peak_rss_mb:",
+                stats.peak_rss_mb,
+            )
+            print(
+                "peak_process_swap_mb:",
+                stats.peak_process_swap_mb,
+            )
+            print(
+                "min_mem_available_mb:",
+                stats.min_mem_available_mb,
+            )
+            print(flush=True)
+
+            # The C++ server may still be busy inside the interrupted
+            # STEP and therefore unable to process QUIT. Terminate it
+            # explicitly for this diagnostic-only pilot.
+            if client.process.poll() is None:
+                client.process.terminate()
+
+                try:
+                    client.process.wait(
+                        timeout=5
+                    )
+
+                except subprocess.TimeoutExpired:
+                    client.process.kill()
+                    client.process.wait()
+
         finally:
             final_stats = (
                 monitor.stop()
@@ -372,6 +478,15 @@ def main():
     )
 
     if (
+        stop_reason
+        ==
+        "MANUAL_INTERRUPT_DURING_STEP"
+    ):
+        status = (
+            "RESOURCE_PILOT_INTERRUPTED"
+        )
+
+    elif (
         completed_terminal
         and
         stop_reason is None
@@ -412,6 +527,15 @@ def main():
 
         "finalization_attempted":
             False,
+
+        "interrupted_step":
+            interrupted_step,
+
+        "interrupted_action":
+            interrupted_action,
+
+        "interrupted_before_state":
+            interrupted_before_state,
 
         "initial_actionable":
             len(
