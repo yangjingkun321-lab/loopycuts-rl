@@ -48,6 +48,12 @@ PILOT_ROOT = (
     "resource_stress_pilots"
 )
 
+ORIGINAL_SELECTION_PILOT_ROOT = (
+    EXPERIMENT_ROOT
+    /
+    "selection_resource_pilots"
+)
+
 OUTPUT = (
     PROJECT_ROOT
     /
@@ -92,6 +98,25 @@ FIELDS = [
     "original_peak_rss_mb",
     "original_peak_process_swap_mb",
     "original_min_mem_available_mb",
+
+    # ----------------------------------------------------------
+    # Original selection-only resource pilot facts.
+    #
+    # These are deliberately distinct from
+    # original_profile_status=COMPLETE, which means a complete
+    # selection + FINALIZE_EVAL baseline exists.
+    # ----------------------------------------------------------
+
+    "original_selection_pilot_status",
+    "original_selection_pilot_stop_reason",
+
+    "original_selection_pilot_terminal",
+    "original_selection_pilot_completed_steps",
+    "original_selection_pilot_tet_ratio",
+
+    "original_selection_pilot_peak_rss_mb",
+    "original_selection_pilot_peak_process_swap_mb",
+    "original_selection_pilot_min_mem_available_mb",
 
     # ----------------------------------------------------------
     # Random seed0 complete baseline facts, where available.
@@ -338,6 +363,139 @@ def main():
             ] = "UNPROFILED"
 
         # ======================================================
+        # Original selection-only resource pilot.
+        #
+        # IMPORTANT:
+        #
+        # This does NOT change original_profile_status.
+        #
+        # original_profile_status=COMPLETE means that the full
+        # selection + FINALIZE_EVAL baseline exists.
+        #
+        # original_selection_pilot_status records only the
+        # diagnostic selection-only run.
+        # ======================================================
+
+        original_selection_pilot_file = (
+            ORIGINAL_SELECTION_PILOT_ROOT
+            /
+            f"{model}_original.json"
+        )
+
+        original_selection_pilot = (
+            load_json_object(
+                original_selection_pilot_file
+            )
+        )
+
+        if original_selection_pilot is not None:
+            if (
+                original_selection_pilot.get(
+                    "model"
+                )
+                !=
+                model
+            ):
+                raise RuntimeError(
+                    "Original selection pilot model "
+                    f"mismatch: {original_selection_pilot_file}"
+                )
+
+            if (
+                original_selection_pilot.get(
+                    "split"
+                )
+                !=
+                "train"
+            ):
+                raise RuntimeError(
+                    "Original selection pilot must "
+                    "belong to split=train: "
+                    f"{original_selection_pilot_file}"
+                )
+
+            if (
+                original_selection_pilot.get(
+                    "policy"
+                )
+                !=
+                "original"
+            ):
+                raise RuntimeError(
+                    "Original selection pilot has "
+                    "unexpected policy: "
+                    f"{original_selection_pilot_file}"
+                )
+
+            if bool(
+                original_selection_pilot.get(
+                    "finalization_attempted",
+                    False,
+                )
+            ):
+                raise RuntimeError(
+                    "Selection-only pilot unexpectedly "
+                    "attempted finalization: "
+                    f"{original_selection_pilot_file}"
+                )
+
+            out[
+                "original_selection_pilot_status"
+            ] = original_selection_pilot.get(
+                "status",
+                "",
+            )
+
+            out[
+                "original_selection_pilot_stop_reason"
+            ] = original_selection_pilot.get(
+                "stop_reason",
+                "",
+            )
+
+            out[
+                "original_selection_pilot_terminal"
+            ] = original_selection_pilot.get(
+                "terminal",
+                "",
+            )
+
+            out[
+                "original_selection_pilot_completed_steps"
+            ] = original_selection_pilot.get(
+                "completed_steps",
+                "",
+            )
+
+            out[
+                "original_selection_pilot_tet_ratio"
+            ] = original_selection_pilot.get(
+                "partial_tet_ratio",
+                "",
+            )
+
+            out[
+                "original_selection_pilot_peak_rss_mb"
+            ] = original_selection_pilot.get(
+                "peak_rss_mb",
+                "",
+            )
+
+            out[
+                "original_selection_pilot_peak_process_swap_mb"
+            ] = original_selection_pilot.get(
+                "peak_process_swap_mb",
+                "",
+            )
+
+            out[
+                "original_selection_pilot_min_mem_available_mb"
+            ] = original_selection_pilot.get(
+                "min_mem_available_mb",
+                "",
+            )
+
+        # ======================================================
         # Random complete baseline.
         # ======================================================
 
@@ -563,6 +721,15 @@ def main():
         for row in rows
     )
 
+    original_selection_pilot_n = sum(
+        bool(
+            row[
+                "original_selection_pilot_status"
+            ]
+        )
+        for row in rows
+    )
+
     random_complete_n = sum(
         row[
             "random_seed0_complete_status"
@@ -592,6 +759,10 @@ def main():
         len(rows)
         -
         original_complete,
+    )
+    print(
+        "original selection pilots:",
+        original_selection_pilot_n,
     )
     print(
         "random complete:",
