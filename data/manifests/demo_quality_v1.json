@@ -1,0 +1,20 @@
+{
+  "auxiliary_transitions": 26,
+  "counts": {
+    "BC_CORE": 3,
+    "EXCLUDE": 0,
+    "NOT_AVAILABLE": 45,
+    "RL_AUXILIARY": 1
+  },
+  "main_demo_transitions": 29,
+  "policy": {
+    "BC_CORE": "Collected and integrity-verified Original trajectory ending FULL_HEX",
+    "EXCLUDE": "Collected trajectory ending FINALIZATION_CRASH",
+    "NOT_AVAILABLE": "Raw demo not collected",
+    "RL_AUXILIARY": "Collected and integrity-verified Original trajectory ending NON_FULL_HEX; excluded from strong BC/main demo replay",
+    "resource_policy": "Resource measurements are used for environment-run feasibility, not Demonstration Quality V1 classification thresholds."
+  },
+  "quality_version": "demo_quality_v1",
+  "source_facts_file": "demo_quality_facts_v1.csv",
+  "source_facts_sha256": "0374da7db8c26ca292e63ccdeb825c6f9d283b5d7c226c6655a00e254a653018"
+}
