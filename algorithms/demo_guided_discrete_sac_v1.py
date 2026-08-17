@@ -28,6 +28,10 @@ from imitation.masked_bc_v1 import (
     q_filtered_masked_behavior_cloning_loss,
 )
 
+from training.masked_auto_alpha_v1 import (
+    MaskedAutoAlphaV1,
+)
+
 
 ALGORITHM_VERSION = (
     "loopycuts_demo_guided_discrete_sac_v1"
@@ -649,11 +653,39 @@ class LoopyCutsDemoGuidedDiscreteSACV1(
         # Entropy temperature and target critics.
         # ======================================================
 
-        alpha_loss = (
-            self.alpha.update(
-                entropy.detach()
+        if isinstance(
+            self.alpha,
+            MaskedAutoAlphaV1,
+        ):
+            if not hasattr(
+                batch.obs,
+                "mask",
+            ):
+                raise RuntimeError(
+                    "MaskedAutoAlphaV1 requires "
+                    "batch.obs.mask"
+                )
+
+            alpha_update = (
+                self.alpha.update_with_mask(
+                    entropy=
+                        entropy.detach(),
+
+                    mask=
+                        batch.obs.mask,
+                )
             )
-        )
+
+            alpha_loss = (
+                alpha_update.loss
+            )
+
+        else:
+            alpha_loss = (
+                self.alpha.update(
+                    entropy.detach()
+                )
+            )
 
         self._update_lagged_network_weights()
 
