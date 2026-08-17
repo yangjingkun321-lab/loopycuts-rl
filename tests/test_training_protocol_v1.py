@@ -37,6 +37,7 @@ from training.protocol_v1 import (
     PROJECT_MASKED_ENTROPY_ACTION_COUNT_SEMANTICS,
     PROJECT_MASKED_ENTROPY_TARGET_FORMULA,
     PROJECT_EPSILON_RANDOM_SUPPORT,
+    PROJECT_MASKED_EPSILON_GREEDY_VERSION,
     PROJECT_MAX_ACTIONS,
     PROJECT_NETWORK_REINITIALIZATION,
     PROJECT_STAGE2_BC_ENABLED,
@@ -208,6 +209,18 @@ def main():
         PROJECT_EPSILON_RANDOM_SUPPORT
         ==
         "CURRENT_LEGAL_ACTIONS"
+    )
+
+    assert (
+        PROJECT_MASKED_EPSILON_GREEDY_VERSION
+        ==
+        "loopycuts_masked_epsilon_greedy_v1"
+    )
+
+    assert (
+        "masked_epsilon_greedy_implementation"
+        not in
+        FORMAL_TRAINING_BLOCKERS
     )
 
     assert (

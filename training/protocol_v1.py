@@ -164,6 +164,10 @@ PROJECT_EPSILON_RANDOM_SUPPORT = (
     "CURRENT_LEGAL_ACTIONS"
 )
 
+PROJECT_MASKED_EPSILON_GREEDY_VERSION = (
+    "loopycuts_masked_epsilon_greedy_v1"
+)
+
 PROJECT_MAIN_DEMO_EPISODES = 3
 
 PROJECT_MAIN_DEMO_TRANSITIONS = 29
@@ -216,7 +220,6 @@ FORMAL_TRAINING_BLOCKERS = (
     "stage2_total_environment_steps",
     "stage2_collection_update_ratio",
     "initial_alpha",
-    "masked_epsilon_greedy_implementation",
 )
 
 

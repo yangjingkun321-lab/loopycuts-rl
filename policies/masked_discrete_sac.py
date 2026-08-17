@@ -24,6 +24,11 @@ from tianshou.data.types import (
 )
 
 
+MASKED_EPSILON_GREEDY_VERSION = (
+    "loopycuts_masked_epsilon_greedy_v1"
+)
+
+
 class MaskedDiscreteSACPolicy(
     DiscreteSACPolicy
 ):
@@ -64,6 +69,299 @@ class MaskedDiscreteSACPolicy(
     For a truly terminated transition, Tianshou later multiplies the
     resulting bootstrap value by zero.
     """
+
+    def __init__(
+        self,
+        *,
+        actor,
+        action_space,
+        deterministic_eval: bool = True,
+        observation_space=None,
+        exploration_epsilon: float = 0.0,
+        exploration_seed: int | None = None,
+    ):
+        super().__init__(
+            actor=actor,
+            action_space=action_space,
+            deterministic_eval=deterministic_eval,
+            observation_space=observation_space,
+        )
+
+        self._exploration_rng = (
+            np.random.default_rng(
+                exploration_seed
+            )
+        )
+
+        self.set_exploration_epsilon(
+            exploration_epsilon
+        )
+
+    # --------------------------------------------------------------
+
+    def set_exploration_epsilon(
+        self,
+        epsilon: float,
+    ):
+        epsilon = float(
+            epsilon
+        )
+
+        if (
+            not np.isfinite(
+                epsilon
+            )
+            or
+            epsilon < 0.0
+            or
+            epsilon > 1.0
+        ):
+            raise ValueError(
+                "exploration_epsilon must "
+                "be finite and in [0, 1]"
+            )
+
+        self.exploration_epsilon = (
+            epsilon
+        )
+
+    # --------------------------------------------------------------
+
+    def add_exploration_noise(
+        self,
+        act,
+        batch: ObsBatchProtocol,
+    ):
+        """
+        Apply masked epsilon-greedy exploration to Collector actions.
+
+        With probability epsilon independently for each current state:
+
+            replace the policy action by a uniformly sampled
+            CURRENTLY LEGAL action.
+
+        Otherwise preserve the policy action.
+
+        This method affects behavior-policy collection only.
+        It does NOT modify the SAC policy distribution used for:
+
+            entropy
+            actor loss
+            target-Q expectation.
+        """
+
+        if not isinstance(
+            act,
+            np.ndarray,
+        ):
+            raise TypeError(
+                "Masked epsilon-greedy expects "
+                "Collector actions as np.ndarray"
+            )
+
+        action_array = np.asarray(
+            act
+        )
+
+        original_shape = (
+            action_array.shape
+        )
+
+        flat_actions = (
+            action_array
+            .reshape(
+                -1
+            )
+            .copy()
+        )
+
+        (
+            _,
+            mask,
+        ) = (
+            self
+            ._extract_actor_obs_and_mask(
+                batch.obs
+            )
+        )
+
+        mask_array = np.asarray(
+            mask,
+            dtype=np.bool_,
+        )
+
+        if (
+            mask_array.ndim == 1
+            and
+            flat_actions.size == 1
+        ):
+            mask_array = (
+                mask_array.reshape(
+                    1,
+                    -1,
+                )
+            )
+
+        if mask_array.ndim != 2:
+            raise ValueError(
+                "Current action mask must have "
+                "shape [batch_size, action_dim]"
+            )
+
+        if (
+            int(
+                mask_array.shape[
+                    0
+                ]
+            )
+            !=
+            int(
+                flat_actions.size
+            )
+        ):
+            raise ValueError(
+                "Action batch size does not "
+                "match mask batch size"
+            )
+
+        legal_counts = (
+            mask_array.sum(
+                axis=1
+            )
+        )
+
+        if bool(
+            (
+                legal_counts
+                <=
+                0
+            ).any()
+        ):
+            bad_row = int(
+                np.flatnonzero(
+                    legal_counts
+                    <=
+                    0
+                )[
+                    0
+                ]
+            )
+
+            raise ValueError(
+                "Masked epsilon-greedy current "
+                "state has no legal actions at "
+                f"batch row {bad_row}"
+            )
+
+        # The incoming action came from the already-masked policy.
+        # Verify that invariant before adding exploration.
+        integer_actions = (
+            flat_actions.astype(
+                np.int64,
+                copy=False,
+            )
+        )
+
+        if bool(
+            (
+                integer_actions
+                <
+                0
+            ).any()
+        ) or bool(
+            (
+                integer_actions
+                >=
+                mask_array.shape[
+                    1
+                ]
+            ).any()
+        ):
+            raise ValueError(
+                "Policy action is outside "
+                "the mask action dimension"
+            )
+
+        row_ids = np.arange(
+            integer_actions.size
+        )
+
+        if not bool(
+            mask_array[
+                row_ids,
+                integer_actions,
+            ].all()
+        ):
+            raise RuntimeError(
+                "Incoming policy action is illegal "
+                "under the current mask"
+            )
+
+        if (
+            self.exploration_epsilon
+            ==
+            0.0
+        ):
+            return act
+
+        explore_rows = (
+            self
+            ._exploration_rng
+            .random(
+                integer_actions.size
+            )
+            <
+            self.exploration_epsilon
+        )
+
+        result = (
+            integer_actions.copy()
+        )
+
+        for row in np.flatnonzero(
+            explore_rows
+        ):
+            legal_actions = (
+                np.flatnonzero(
+                    mask_array[
+                        row
+                    ]
+                )
+            )
+
+            result[
+                row
+            ] = int(
+                self
+                ._exploration_rng
+                .choice(
+                    legal_actions
+                )
+            )
+
+        # Final hard invariant:
+        # every action actually returned to Collector is legal.
+        if not bool(
+            mask_array[
+                row_ids,
+                result,
+            ].all()
+        ):
+            raise RuntimeError(
+                "Masked epsilon-greedy produced "
+                "an illegal action"
+            )
+
+        return (
+            result
+            .reshape(
+                original_shape
+            )
+            .astype(
+                action_array.dtype,
+                copy=False,
+            )
+        )
 
     # --------------------------------------------------------------
 
