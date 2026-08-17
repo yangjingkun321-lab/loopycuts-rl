@@ -11,7 +11,13 @@ from tianshou.algorithm.modelfree.discrete_sac import (
 )
 
 from tianshou.data import (
+    Batch,
+    ReplayBuffer,
     to_torch,
+)
+
+from tianshou.utils.torch_utils import (
+    torch_train_mode,
 )
 
 from tianshou.data.types import (
@@ -138,6 +144,264 @@ class LoopyCutsDemoGuidedDiscreteSACV1(
         self.bc_enabled = bool(
             enabled
         )
+
+    def update_equal_replay(
+        self,
+        *,
+        demo_buffer: ReplayBuffer,
+        expo_buffer: ReplayBuffer,
+        samples_per_buffer: int,
+    ):
+        """
+        Stage-II equal replay update.
+
+        Exactly:
+
+            N transitions from D_demo
+            N transitions from D_expo
+
+        are sampled for ONE optimizer update.
+
+        Each source batch is preprocessed against its OWN replay
+        buffer before concatenation, preserving correct n-step
+        episode semantics.
+
+        Stage-II must be SAC-only, so BC must already be disabled.
+        """
+
+        samples_per_buffer = int(
+            samples_per_buffer
+        )
+
+        if samples_per_buffer <= 0:
+            raise ValueError(
+                "samples_per_buffer must "
+                "be positive"
+            )
+
+        if self.bc_enabled:
+            raise RuntimeError(
+                "update_equal_replay() is a "
+                "Stage-II operation and requires "
+                "bc_enabled=False"
+            )
+
+        if len(
+            demo_buffer
+        ) <= 0:
+            raise ValueError(
+                "D_demo is empty"
+            )
+
+        if len(
+            expo_buffer
+        ) <= 0:
+            raise ValueError(
+                "D_expo is empty"
+            )
+
+        if not self.policy.is_within_training_step:
+            raise RuntimeError(
+                "update_equal_replay() must be "
+                "called within a Tianshou "
+                "training step"
+            )
+
+        # ======================================================
+        # Sample independently.
+        # ReplayBuffer sampling is with replacement, matching
+        # normal Tianshou ReplayBuffer.sample() behavior.
+        # ======================================================
+
+        demo_batch, demo_indices = (
+            demo_buffer.sample(
+                samples_per_buffer
+            )
+        )
+
+        expo_batch, expo_indices = (
+            expo_buffer.sample(
+                samples_per_buffer
+            )
+        )
+
+        # ======================================================
+        # CRITICAL:
+        # preprocess each source with its own replay topology.
+        # ======================================================
+
+        demo_batch = (
+            self._preprocess_batch(
+                demo_batch,
+                demo_buffer,
+                demo_indices,
+            )
+        )
+
+        expo_batch = (
+            self._preprocess_batch(
+                expo_batch,
+                expo_buffer,
+                expo_indices,
+            )
+        )
+
+        # ------------------------------------------------------
+        # info / policy are not learning inputs for our current
+        # LoopyCuts Actor/Critic.
+        #
+        # D_expo may contain runtime info while D_demo does not.
+        # Normalize them before Batch.cat().
+        # ------------------------------------------------------
+
+        demo_batch.info = Batch()
+        expo_batch.info = Batch()
+
+        demo_batch.policy = Batch()
+        expo_batch.policy = Batch()
+
+        # Source marker is diagnostic only.
+        demo_batch.replay_source = np.zeros(
+            samples_per_buffer,
+            dtype=np.int8,
+        )
+
+        expo_batch.replay_source = np.ones(
+            samples_per_buffer,
+            dtype=np.int8,
+        )
+
+        # ------------------------------------------------------
+        # Do NOT shuffle here.
+        #
+        # Sampling within each buffer is already random.
+        # Keeping:
+        #
+        #   [demo rows][expo rows]
+        #
+        # lets us map TD weights back to the two original buffers
+        # if prioritized replay is introduced later.
+        # ------------------------------------------------------
+
+        mixed_batch = Batch.cat(
+            [
+                demo_batch,
+                expo_batch,
+            ]
+        )
+
+        expected_size = (
+            2
+            *
+            samples_per_buffer
+        )
+
+        if len(
+            mixed_batch
+        ) != expected_size:
+            raise RuntimeError(
+                "Mixed replay batch has "
+                "unexpected size"
+            )
+
+        source = np.asarray(
+            mixed_batch.replay_source,
+            dtype=np.int8,
+        )
+
+        if (
+            int(
+                np.sum(
+                    source == 0
+                )
+            )
+            !=
+            samples_per_buffer
+        ):
+            raise RuntimeError(
+                "D_demo sample count is not 1:1"
+            )
+
+        if (
+            int(
+                np.sum(
+                    source == 1
+                )
+            )
+            !=
+            samples_per_buffer
+        ):
+            raise RuntimeError(
+                "D_expo sample count is not 1:1"
+            )
+
+        # ======================================================
+        # ONE optimizer update on the combined 1:1 minibatch.
+        # ======================================================
+
+        with torch_train_mode(
+            self
+        ):
+            stats = (
+                self._update_with_batch(
+                    mixed_batch
+                )
+            )
+
+        # ======================================================
+        # Preserve Tianshou post-processing semantics separately
+        # for each source buffer.
+        #
+        # _update_with_batch writes TD error into batch.weight.
+        # ======================================================
+
+        if hasattr(
+            mixed_batch,
+            "weight",
+        ):
+            demo_batch.weight = (
+                mixed_batch.weight[
+                    :samples_per_buffer
+                ]
+            )
+
+            expo_batch.weight = (
+                mixed_batch.weight[
+                    samples_per_buffer:
+                ]
+            )
+
+        self._postprocess_batch(
+            demo_batch,
+            demo_buffer,
+            demo_indices,
+        )
+
+        self._postprocess_batch(
+            expo_batch,
+            expo_buffer,
+            expo_indices,
+        )
+
+        for scheduler in self.lr_schedulers:
+            scheduler.step()
+
+        return (
+            stats,
+            {
+                "demo_samples":
+                    samples_per_buffer,
+
+                "expo_samples":
+                    samples_per_buffer,
+
+                "total_samples":
+                    expected_size,
+            },
+        )
+
+
+
 
     def _update_with_batch(
         self,
