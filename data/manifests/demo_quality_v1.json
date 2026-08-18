@@ -1,12 +1,12 @@
 {
   "auxiliary_transitions": 26,
   "counts": {
-    "BC_CORE": 28,
+    "BC_CORE": 29,
     "EXCLUDE": 0,
-    "NOT_AVAILABLE": 20,
+    "NOT_AVAILABLE": 19,
     "RL_AUXILIARY": 1
   },
-  "main_demo_transitions": 541,
+  "main_demo_transitions": 576,
   "policy": {
     "BC_CORE": "Collected and integrity-verified Original trajectory ending FULL_HEX",
     "EXCLUDE": "Collected trajectory ending FINALIZATION_CRASH",
@@ -16,5 +16,5 @@
   },
   "quality_version": "demo_quality_v1",
   "source_facts_file": "demo_quality_facts_v1.csv",
-  "source_facts_sha256": "1441d1678d13a42ad8e59fd71e7dc57a495f6b06d25514858671553ad9ba0415"
+  "source_facts_sha256": "6605d0804e2523295409f01ebff8a1c1b1187e53d76e534d5abe741087d50373"
 }
