@@ -243,6 +243,88 @@ PROJECT_INITIAL_ALPHA_BASIS = (
     "TIANSHOU_2_0_1_AUTO_ALPHA_DEFAULT_LOG_ALPHA_0"
 )
 
+
+# ================================================================
+# EXPLICIT SAC RUNTIME CONFIGURATION
+#
+# IMPORTANT:
+#
+# Do not construct formal/calibration SAC by inheriting the complete
+# Tianshou DiscreteSACParams defaults.
+#
+# Example:
+#
+#     Tianshou 2.0.1 default gamma = 0.99
+#     frozen project/paper gamma   = 0.95
+#
+# Therefore every runtime-sensitive setting used by this project is
+# explicit below.
+# ================================================================
+
+PROJECT_OPTIMIZER_FAMILY = (
+    "ADAM"
+)
+
+PROJECT_ADAM_BETAS = (
+    0.9,
+    0.999,
+)
+
+PROJECT_ADAM_EPS = 1.0e-8
+
+PROJECT_ADAM_WEIGHT_DECAY = 0.0
+
+PROJECT_OPTIMIZER_BASIS = (
+    "TIANSHOU_2_0_1_DEFAULT_ADAM"
+)
+
+
+# Actor / critics use the learning rate specified by the paper.
+PROJECT_ACTOR_LEARNING_RATE = (
+    PAPER_LEARNING_RATE
+)
+
+PROJECT_CRITIC1_LEARNING_RATE = (
+    PAPER_LEARNING_RATE
+)
+
+PROJECT_CRITIC2_LEARNING_RATE = (
+    PAPER_LEARNING_RATE
+)
+
+PROJECT_ACTOR_CRITIC_LEARNING_RATE_BASIS = (
+    "PAPER_LEARNING_RATE"
+)
+
+
+# Auto-alpha optimizer LR is not paper-specified.
+# It is frozen to the audited Tianshou 2.0.1 auto-alpha default.
+PROJECT_ALPHA_LEARNING_RATE = 3.0e-4
+
+PROJECT_ALPHA_LEARNING_RATE_BASIS = (
+    "TIANSHOU_2_0_1_AUTO_ALPHA_DEFAULT"
+)
+
+
+# Tianshou 2.0.1 Discrete SAC default, explicitly frozen rather
+# than silently inherited by the runner.
+PROJECT_N_STEP_RETURN_HORIZON = 1
+
+PROJECT_N_STEP_RETURN_HORIZON_BASIS = (
+    "TIANSHOU_2_0_1_DISCRETE_SAC_DEFAULT"
+)
+
+
+# No LR scheduler is used for actor, critics, or alpha.
+PROJECT_LEARNING_RATE_SCHEDULER = (
+    "NONE"
+)
+
+PROJECT_LEARNING_RATE_SCHEDULER_BASIS = (
+    "TIANSHOU_2_0_1_DEFAULT_NO_SCHEDULER"
+)
+
+
 PROJECT_STAGE2_COLLECTION_UPDATE_RATIO = 1.0
 
 PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_SEMANTICS = (
@@ -372,6 +454,13 @@ PROJECT_BC_WEIGHT_CALIBRATION_STAGE2_ENABLED = False
 PROJECT_BC_WEIGHT_CALIBRATION_EVAL_DETERMINISTIC = True
 
 PROJECT_BC_WEIGHT_CALIBRATION_EVAL_EPSILON = 0.0
+
+# All paired lambda-calibration runs use the same numerical device.
+# This is a calibration-only setting and does not yet freeze the
+# final formal-training device policy.
+PROJECT_BC_WEIGHT_CALIBRATION_DEVICE = (
+    "cpu"
+)
 
 PROJECT_BC_WEIGHT_CALIBRATION_DEV_ALLOWED = False
 

@@ -42,6 +42,21 @@ from training.protocol_v1 import (
     PROJECT_NETWORK_REINITIALIZATION,
     PROJECT_INITIAL_ALPHA,
     PROJECT_INITIAL_ALPHA_BASIS,
+    PROJECT_OPTIMIZER_FAMILY,
+    PROJECT_ADAM_BETAS,
+    PROJECT_ADAM_EPS,
+    PROJECT_ADAM_WEIGHT_DECAY,
+    PROJECT_OPTIMIZER_BASIS,
+    PROJECT_ACTOR_LEARNING_RATE,
+    PROJECT_CRITIC1_LEARNING_RATE,
+    PROJECT_CRITIC2_LEARNING_RATE,
+    PROJECT_ACTOR_CRITIC_LEARNING_RATE_BASIS,
+    PROJECT_ALPHA_LEARNING_RATE,
+    PROJECT_ALPHA_LEARNING_RATE_BASIS,
+    PROJECT_N_STEP_RETURN_HORIZON,
+    PROJECT_N_STEP_RETURN_HORIZON_BASIS,
+    PROJECT_LEARNING_RATE_SCHEDULER,
+    PROJECT_LEARNING_RATE_SCHEDULER_BASIS,
     PROJECT_STAGE1_TARGET_SAMPLED_DEMO_TRANSITIONS,
     PROJECT_STAGE1_GRADIENT_STEPS,
     PROJECT_STAGE1_ACTUAL_SAMPLED_DEMO_TRANSITIONS,
@@ -58,6 +73,7 @@ from training.protocol_v1 import (
     PROJECT_BC_WEIGHT_CALIBRATION_STAGE2_ENABLED,
     PROJECT_BC_WEIGHT_CALIBRATION_EVAL_DETERMINISTIC,
     PROJECT_BC_WEIGHT_CALIBRATION_EVAL_EPSILON,
+    PROJECT_BC_WEIGHT_CALIBRATION_DEVICE,
     PROJECT_BC_WEIGHT_CALIBRATION_DEV_ALLOWED,
     PROJECT_BC_WEIGHT_CALIBRATION_BLIND_ALLOWED,
     PROJECT_BC_WEIGHT_CALIBRATION_NONHEX_METRIC,
@@ -329,6 +345,114 @@ def main():
         "TIANSHOU_2_0_1_AUTO_ALPHA_DEFAULT_LOG_ALPHA_0"
     )
 
+
+    # ------------------------------------------------------------
+    # Explicit SAC runtime configuration.
+    # ------------------------------------------------------------
+
+    assert (
+        PROJECT_OPTIMIZER_FAMILY
+        ==
+        "ADAM"
+    )
+
+    assert (
+        PROJECT_ADAM_BETAS
+        ==
+        (
+            0.9,
+            0.999,
+        )
+    )
+
+    assert math.isclose(
+        PROJECT_ADAM_EPS,
+        1.0e-8,
+    )
+
+    assert math.isclose(
+        PROJECT_ADAM_WEIGHT_DECAY,
+        0.0,
+    )
+
+    assert (
+        PROJECT_OPTIMIZER_BASIS
+        ==
+        "TIANSHOU_2_0_1_DEFAULT_ADAM"
+    )
+
+    assert math.isclose(
+        PROJECT_ACTOR_LEARNING_RATE,
+        0.001,
+    )
+
+    assert math.isclose(
+        PROJECT_CRITIC1_LEARNING_RATE,
+        0.001,
+    )
+
+    assert math.isclose(
+        PROJECT_CRITIC2_LEARNING_RATE,
+        0.001,
+    )
+
+    assert math.isclose(
+        PROJECT_ACTOR_LEARNING_RATE,
+        PAPER_LEARNING_RATE,
+    )
+
+    assert math.isclose(
+        PROJECT_CRITIC1_LEARNING_RATE,
+        PAPER_LEARNING_RATE,
+    )
+
+    assert math.isclose(
+        PROJECT_CRITIC2_LEARNING_RATE,
+        PAPER_LEARNING_RATE,
+    )
+
+    assert (
+        PROJECT_ACTOR_CRITIC_LEARNING_RATE_BASIS
+        ==
+        "PAPER_LEARNING_RATE"
+    )
+
+    assert math.isclose(
+        PROJECT_ALPHA_LEARNING_RATE,
+        3.0e-4,
+    )
+
+    assert (
+        PROJECT_ALPHA_LEARNING_RATE_BASIS
+        ==
+        "TIANSHOU_2_0_1_AUTO_ALPHA_DEFAULT"
+    )
+
+    assert (
+        PROJECT_N_STEP_RETURN_HORIZON
+        ==
+        1
+    )
+
+    assert (
+        PROJECT_N_STEP_RETURN_HORIZON_BASIS
+        ==
+        "TIANSHOU_2_0_1_DISCRETE_SAC_DEFAULT"
+    )
+
+    assert (
+        PROJECT_LEARNING_RATE_SCHEDULER
+        ==
+        "NONE"
+    )
+
+    assert (
+        PROJECT_LEARNING_RATE_SCHEDULER_BASIS
+        ==
+        "TIANSHOU_2_0_1_DEFAULT_NO_SCHEDULER"
+    )
+
+
     assert math.isclose(
         PROJECT_STAGE2_COLLECTION_UPDATE_RATIO,
         1.0,
@@ -527,6 +651,12 @@ def main():
     assert math.isclose(
         PROJECT_BC_WEIGHT_CALIBRATION_EVAL_EPSILON,
         0.0,
+    )
+
+    assert (
+        PROJECT_BC_WEIGHT_CALIBRATION_DEVICE
+        ==
+        "cpu"
     )
 
     assert (
