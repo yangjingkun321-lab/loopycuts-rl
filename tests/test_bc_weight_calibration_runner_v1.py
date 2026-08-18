@@ -4,6 +4,8 @@ import math
 import sys
 from pathlib import Path
 
+from torch.optim import AdamW
+
 
 PROJECT_ROOT = (
     Path(__file__)
@@ -28,7 +30,8 @@ from training.protocol_v1 import (
 from training.run_bc_weight_calibration_v1 import (
     assert_protocol,
     build_stage1_algorithm,
-    make_adam_factory,
+    make_actor_critic_adamw_factory,
+    make_alpha_adam_factory,
 )
 
 
@@ -55,15 +58,72 @@ def main():
         PROJECT_BC_WEIGHT_CALIBRATION_CANDIDATES
     )
 
-    factory = (
-        make_adam_factory(
+    actor_critic_factory = (
+        make_actor_critic_adamw_factory(
             lr=0.001
         )
     )
 
+    assert (
+        actor_critic_factory.optim_class
+        is AdamW
+    )
+
     assert math.isclose(
-        factory.lr,
+        actor_critic_factory.kwargs[
+            "lr"
+        ],
         0.001,
+    )
+
+    assert (
+        actor_critic_factory.kwargs[
+            "betas"
+        ]
+        ==
+        (
+            0.99,
+            0.999,
+        )
+    )
+
+    assert math.isclose(
+        actor_critic_factory.kwargs[
+            "eps"
+        ],
+        1.0e-8,
+    )
+
+    assert math.isclose(
+        actor_critic_factory.kwargs[
+            "weight_decay"
+        ],
+        0.01,
+    )
+
+    alpha_factory = (
+        make_alpha_adam_factory(
+            lr=3.0e-4
+        )
+    )
+
+    assert math.isclose(
+        alpha_factory.lr,
+        3.0e-4,
+    )
+
+    assert (
+        alpha_factory.betas
+        ==
+        (
+            0.9,
+            0.999,
+        )
+    )
+
+    assert math.isclose(
+        alpha_factory.weight_decay,
+        0.0,
     )
 
     algorithm, policy, auto_alpha = (

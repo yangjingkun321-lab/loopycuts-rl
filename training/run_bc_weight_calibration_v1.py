@@ -31,8 +31,13 @@ import numpy as np
 import torch
 import tianshou
 
+from torch.optim import (
+    AdamW,
+)
+
 from tianshou.algorithm.optim import (
     AdamOptimizerFactory,
+    TorchOptimizerFactory,
 )
 
 from tianshou.data import (
@@ -92,9 +97,15 @@ from training.protocol_v1 import (
     PAPER_ENTROPY_TARGET_COEFFICIENT,
     PAPER_SOFT_UPDATE_TAU,
 
-    PROJECT_ADAM_BETAS,
-    PROJECT_ADAM_EPS,
-    PROJECT_ADAM_WEIGHT_DECAY,
+    PROJECT_ACTOR_CRITIC_OPTIMIZER_FAMILY,
+    PROJECT_ACTOR_CRITIC_BETAS,
+    PROJECT_ACTOR_CRITIC_EPS,
+    PROJECT_ACTOR_CRITIC_WEIGHT_DECAY,
+
+    PROJECT_ALPHA_OPTIMIZER_FAMILY,
+    PROJECT_ALPHA_ADAM_BETAS,
+    PROJECT_ALPHA_ADAM_EPS,
+    PROJECT_ALPHA_ADAM_WEIGHT_DECAY,
 
     PROJECT_ACTOR_LEARNING_RATE,
     PROJECT_CRITIC1_LEARNING_RATE,
@@ -127,7 +138,7 @@ from training.protocol_v1 import (
 
 
 RUNNER_VERSION = (
-    "bc_weight_calibration_runner_v1"
+    "bc_weight_calibration_runner_v2"
 )
 
 
@@ -154,7 +165,7 @@ DEFAULT_DEMO_QUALITY = Path(
 
 DEFAULT_SMOKE_OUTPUT_ROOT = Path(
     "/home/yjk/loopycuts_test/"
-    "bc_weight_calibration_smoke_v1"
+    "bc_weight_calibration_smoke_v2"
 )
 
 
@@ -203,7 +214,7 @@ def assert_protocol():
     assert (
         PROJECT_BC_WEIGHT_CALIBRATION_VERSION
         ==
-        "bc_weight_calibration_v1"
+        "bc_weight_calibration_v2"
     )
 
     assert (
@@ -301,10 +312,51 @@ def set_run_seed(
     )
 
 
-def make_adam_factory(
+def make_actor_critic_adamw_factory(
     *,
     lr: float,
 ):
+    if (
+        PROJECT_ACTOR_CRITIC_OPTIMIZER_FAMILY
+        !=
+        "ADAMW"
+    ):
+        raise CalibrationRunnerError(
+            "Frozen actor/critic optimizer must be ADAMW"
+        )
+
+    return TorchOptimizerFactory(
+        AdamW,
+
+        lr=
+            float(
+                lr
+            ),
+
+        betas=
+            PROJECT_ACTOR_CRITIC_BETAS,
+
+        eps=
+            PROJECT_ACTOR_CRITIC_EPS,
+
+        weight_decay=
+            PROJECT_ACTOR_CRITIC_WEIGHT_DECAY,
+    )
+
+
+def make_alpha_adam_factory(
+    *,
+    lr: float,
+):
+    if (
+        PROJECT_ALPHA_OPTIMIZER_FAMILY
+        !=
+        "ADAM"
+    ):
+        raise CalibrationRunnerError(
+            "Frozen alpha optimizer must be ADAM"
+        )
+
     return AdamOptimizerFactory(
         lr=
             float(
@@ -312,13 +364,13 @@ def make_adam_factory(
             ),
 
         betas=
-            PROJECT_ADAM_BETAS,
+            PROJECT_ALPHA_ADAM_BETAS,
 
         eps=
-            PROJECT_ADAM_EPS,
+            PROJECT_ALPHA_ADAM_EPS,
 
         weight_decay=
-            PROJECT_ADAM_WEIGHT_DECAY,
+            PROJECT_ALPHA_ADAM_WEIGHT_DECAY,
     )
 
 
@@ -374,7 +426,7 @@ def build_stage1_algorithm(
                 PROJECT_INITIAL_ALPHA,
 
             optim=
-                make_adam_factory(
+                make_alpha_adam_factory(
                     lr=
                         PROJECT_ALPHA_LEARNING_RATE
                 ),
@@ -390,7 +442,7 @@ def build_stage1_algorithm(
                 policy,
 
             policy_optim=
-                make_adam_factory(
+                make_actor_critic_adamw_factory(
                     lr=
                         PROJECT_ACTOR_LEARNING_RATE
                 ),
@@ -399,7 +451,7 @@ def build_stage1_algorithm(
                 critic1,
 
             critic_optim=
-                make_adam_factory(
+                make_actor_critic_adamw_factory(
                     lr=
                         PROJECT_CRITIC1_LEARNING_RATE
                 ),
@@ -408,7 +460,7 @@ def build_stage1_algorithm(
                 critic2,
 
             critic2_optim=
-                make_adam_factory(
+                make_actor_critic_adamw_factory(
                     lr=
                         PROJECT_CRITIC2_LEARNING_RATE
                 ),
@@ -1079,7 +1131,7 @@ def run_smoke(
         )
 
     print("=" * 112)
-    print("BC-WEIGHT CALIBRATION RUNNER V1 -- NON-CANDIDATE SMOKE")
+    print("BC-WEIGHT CALIBRATION RUNNER V2 -- NON-CANDIDATE SMOKE")
     print("=" * 112)
 
     print(
@@ -1402,7 +1454,7 @@ def print_plan():
     assert_protocol()
 
     print("=" * 112)
-    print("BC-WEIGHT CALIBRATION RUNNER V1 PLAN")
+    print("BC-WEIGHT CALIBRATION RUNNER V2 PLAN")
     print("=" * 112)
 
     print(

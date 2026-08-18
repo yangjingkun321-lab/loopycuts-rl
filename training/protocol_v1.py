@@ -29,6 +29,30 @@ PAPER_DISCOUNT_FACTOR = 0.95
 
 PAPER_LEARNING_RATE = 0.001
 
+# Zhang et al. implementation details.
+PAPER_OPTIMIZER_FAMILY = (
+    "ADAMW"
+)
+
+PAPER_ADAMW_BETAS = (
+    0.99,
+    0.999,
+)
+
+PAPER_ADAMW_EPS = 1.0e-8
+
+PAPER_ADAMW_WEIGHT_DECAY = 0.01
+
+# The reference method performs 32 gradient steps after each
+# completed environment episode.  This is recorded as a paper fact,
+# but is NOT transferred directly to LoopyCuts because LoopyCuts
+# episode lengths vary substantially.
+PAPER_GRADIENT_STEPS_PER_EPISODE = 32
+
+PAPER_UPDATE_CADENCE = (
+    "ONE_COMPLETED_EPISODE_THEN_32_GRADIENT_STEPS"
+)
+
 PAPER_SOFT_UPDATE_TAU = 0.005
 
 PAPER_ENTROPY_TARGET_COEFFICIENT = 0.6
@@ -261,21 +285,57 @@ PROJECT_INITIAL_ALPHA_BASIS = (
 # explicit below.
 # ================================================================
 
-PROJECT_OPTIMIZER_FAMILY = (
+# Actor and twin critics follow the optimizer configuration
+# explicitly reported by Zhang et al.
+#
+# Tianshou 2.0.1 has no dedicated AdamWOptimizerFactory, so the
+# runtime uses:
+#
+#     TorchOptimizerFactory(torch.optim.AdamW, ...)
+#
+# This has been capability-audited in the frozen environment.
+PROJECT_ACTOR_CRITIC_OPTIMIZER_FAMILY = (
+    PAPER_OPTIMIZER_FAMILY
+)
+
+PROJECT_ACTOR_CRITIC_BETAS = (
+    PAPER_ADAMW_BETAS
+)
+
+PROJECT_ACTOR_CRITIC_EPS = (
+    PAPER_ADAMW_EPS
+)
+
+PROJECT_ACTOR_CRITIC_WEIGHT_DECAY = (
+    PAPER_ADAMW_WEIGHT_DECAY
+)
+
+PROJECT_ACTOR_CRITIC_OPTIMIZER_BASIS = (
+    "ZHANG_2025_IMPLEMENTATION_DETAILS"
+)
+
+
+# Auto-alpha remains an explicit project/framework adaptation.
+#
+# The paper states that AdamW is used during training, but does not
+# separately establish that the temperature parameter uses exactly
+# the same optimizer instance/configuration.  We therefore do not
+# silently promote that inference into a paper fact.
+PROJECT_ALPHA_OPTIMIZER_FAMILY = (
     "ADAM"
 )
 
-PROJECT_ADAM_BETAS = (
+PROJECT_ALPHA_ADAM_BETAS = (
     0.9,
     0.999,
 )
 
-PROJECT_ADAM_EPS = 1.0e-8
+PROJECT_ALPHA_ADAM_EPS = 1.0e-8
 
-PROJECT_ADAM_WEIGHT_DECAY = 0.0
+PROJECT_ALPHA_ADAM_WEIGHT_DECAY = 0.0
 
-PROJECT_OPTIMIZER_BASIS = (
-    "TIANSHOU_2_0_1_DEFAULT_ADAM"
+PROJECT_ALPHA_OPTIMIZER_BASIS = (
+    "TIANSHOU_2_0_1_DEFAULT_ADAM_PROJECT_ADAPTATION"
 )
 
 
@@ -332,7 +392,11 @@ PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_SEMANTICS = (
 )
 
 PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_BASIS = (
-    "TIANSHOU_2_0_1_OFFPOLICY_DEFAULT"
+    "PROJECT_SPECIFIED_TRANSITION_NORMALIZED_OFFPOLICY_CADENCE"
+)
+
+PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_REFERENCE = (
+    "ZHANG_2025_USES_32_GRADIENT_STEPS_PER_COMPLETED_EPISODE"
 )
 
 
@@ -416,7 +480,7 @@ PROJECT_STAGE1_STOPPING_RULE_SEMANTICS = (
 # ================================================================
 
 PROJECT_BC_WEIGHT_CALIBRATION_VERSION = (
-    "bc_weight_calibration_v1"
+    "bc_weight_calibration_v2"
 )
 
 PROJECT_BC_WEIGHT_CALIBRATION_CANDIDATES = (

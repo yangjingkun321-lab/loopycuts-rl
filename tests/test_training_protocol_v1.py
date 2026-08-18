@@ -27,6 +27,12 @@ from training.protocol_v1 import (
     PAPER_EXPO_REPLAY_CAPACITY,
     PAPER_TRAIN_EPSILON_GREEDY,
     PAPER_LEARNING_RATE,
+    PAPER_OPTIMIZER_FAMILY,
+    PAPER_ADAMW_BETAS,
+    PAPER_ADAMW_EPS,
+    PAPER_ADAMW_WEIGHT_DECAY,
+    PAPER_GRADIENT_STEPS_PER_EPISODE,
+    PAPER_UPDATE_CADENCE,
     PAPER_SOFT_UPDATE_TAU,
     PAPER_STAGE2_REPLAY_RATIO,
     PAPER_TEMPERATURE_MODE,
@@ -42,11 +48,16 @@ from training.protocol_v1 import (
     PROJECT_NETWORK_REINITIALIZATION,
     PROJECT_INITIAL_ALPHA,
     PROJECT_INITIAL_ALPHA_BASIS,
-    PROJECT_OPTIMIZER_FAMILY,
-    PROJECT_ADAM_BETAS,
-    PROJECT_ADAM_EPS,
-    PROJECT_ADAM_WEIGHT_DECAY,
-    PROJECT_OPTIMIZER_BASIS,
+    PROJECT_ACTOR_CRITIC_OPTIMIZER_FAMILY,
+    PROJECT_ACTOR_CRITIC_BETAS,
+    PROJECT_ACTOR_CRITIC_EPS,
+    PROJECT_ACTOR_CRITIC_WEIGHT_DECAY,
+    PROJECT_ACTOR_CRITIC_OPTIMIZER_BASIS,
+    PROJECT_ALPHA_OPTIMIZER_FAMILY,
+    PROJECT_ALPHA_ADAM_BETAS,
+    PROJECT_ALPHA_ADAM_EPS,
+    PROJECT_ALPHA_ADAM_WEIGHT_DECAY,
+    PROJECT_ALPHA_OPTIMIZER_BASIS,
     PROJECT_ACTOR_LEARNING_RATE,
     PROJECT_CRITIC1_LEARNING_RATE,
     PROJECT_CRITIC2_LEARNING_RATE,
@@ -83,6 +94,7 @@ from training.protocol_v1 import (
     PROJECT_STAGE2_COLLECTION_UPDATE_RATIO,
     PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_SEMANTICS,
     PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_BASIS,
+    PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_REFERENCE,
     PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS,
     PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS_SEMANTICS,
     PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS_BASIS,
@@ -121,6 +133,43 @@ def main():
     assert math.isclose(
         PAPER_LEARNING_RATE,
         0.001,
+    )
+
+    assert (
+        PAPER_OPTIMIZER_FAMILY
+        ==
+        "ADAMW"
+    )
+
+    assert (
+        PAPER_ADAMW_BETAS
+        ==
+        (
+            0.99,
+            0.999,
+        )
+    )
+
+    assert math.isclose(
+        PAPER_ADAMW_EPS,
+        1.0e-8,
+    )
+
+    assert math.isclose(
+        PAPER_ADAMW_WEIGHT_DECAY,
+        0.01,
+    )
+
+    assert (
+        PAPER_GRADIENT_STEPS_PER_EPISODE
+        ==
+        32
+    )
+
+    assert (
+        PAPER_UPDATE_CADENCE
+        ==
+        "ONE_COMPLETED_EPISODE_THEN_32_GRADIENT_STEPS"
     )
 
     assert math.isclose(
@@ -351,13 +400,52 @@ def main():
     # ------------------------------------------------------------
 
     assert (
-        PROJECT_OPTIMIZER_FAMILY
+        PROJECT_ACTOR_CRITIC_OPTIMIZER_FAMILY
+        ==
+        "ADAMW"
+    )
+
+    assert (
+        PROJECT_ACTOR_CRITIC_OPTIMIZER_FAMILY
+        ==
+        PAPER_OPTIMIZER_FAMILY
+    )
+
+    assert (
+        PROJECT_ACTOR_CRITIC_BETAS
+        ==
+        PAPER_ADAMW_BETAS
+        ==
+        (
+            0.99,
+            0.999,
+        )
+    )
+
+    assert math.isclose(
+        PROJECT_ACTOR_CRITIC_EPS,
+        PAPER_ADAMW_EPS,
+    )
+
+    assert math.isclose(
+        PROJECT_ACTOR_CRITIC_WEIGHT_DECAY,
+        PAPER_ADAMW_WEIGHT_DECAY,
+    )
+
+    assert (
+        PROJECT_ACTOR_CRITIC_OPTIMIZER_BASIS
+        ==
+        "ZHANG_2025_IMPLEMENTATION_DETAILS"
+    )
+
+    assert (
+        PROJECT_ALPHA_OPTIMIZER_FAMILY
         ==
         "ADAM"
     )
 
     assert (
-        PROJECT_ADAM_BETAS
+        PROJECT_ALPHA_ADAM_BETAS
         ==
         (
             0.9,
@@ -366,19 +454,19 @@ def main():
     )
 
     assert math.isclose(
-        PROJECT_ADAM_EPS,
+        PROJECT_ALPHA_ADAM_EPS,
         1.0e-8,
     )
 
     assert math.isclose(
-        PROJECT_ADAM_WEIGHT_DECAY,
+        PROJECT_ALPHA_ADAM_WEIGHT_DECAY,
         0.0,
     )
 
     assert (
-        PROJECT_OPTIMIZER_BASIS
+        PROJECT_ALPHA_OPTIMIZER_BASIS
         ==
-        "TIANSHOU_2_0_1_DEFAULT_ADAM"
+        "TIANSHOU_2_0_1_DEFAULT_ADAM_PROJECT_ADAPTATION"
     )
 
     assert math.isclose(
@@ -467,7 +555,13 @@ def main():
     assert (
         PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_BASIS
         ==
-        "TIANSHOU_2_0_1_OFFPOLICY_DEFAULT"
+        "PROJECT_SPECIFIED_TRANSITION_NORMALIZED_OFFPOLICY_CADENCE"
+    )
+
+    assert (
+        PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_REFERENCE
+        ==
+        "ZHANG_2025_USES_32_GRADIENT_STEPS_PER_COMPLETED_EPISODE"
     )
 
     assert (
@@ -587,7 +681,7 @@ def main():
     assert (
         PROJECT_BC_WEIGHT_CALIBRATION_VERSION
         ==
-        "bc_weight_calibration_v1"
+        "bc_weight_calibration_v2"
     )
 
     assert (
