@@ -57,6 +57,7 @@ def synthetic_pair_payload(
     bc_weight,
     seed,
     git_commit,
+    input_provenance,
 ):
     evaluations = []
 
@@ -113,6 +114,11 @@ def synthetic_pair_payload(
 
         "git_commit":
             git_commit,
+
+        "input_provenance":
+            dict(
+                input_provenance
+            ),
 
         "bc_weight":
             float(
@@ -331,6 +337,32 @@ def main():
         "synthetic-test-commit"
     )
 
+    synthetic_input_provenance = {
+        "schema_version":
+            "bc_weight_calibration_input_provenance_v1",
+
+        "manifest_path":
+            "/synthetic/input_provenance.json",
+
+        "manifest_sha256":
+            "synthetic-provenance-manifest-sha256",
+
+        "loopycuts_source_base_commit":
+            "synthetic-loopycuts-base-commit",
+
+        "loopycuts_executable_sha256":
+            "synthetic-volumetric-cutter-sha256",
+
+        "dataset_manifest_sha256":
+            "synthetic-dataset-manifest-sha256",
+
+        "demo_quality_manifest_sha256":
+            "synthetic-demo-quality-manifest-sha256",
+
+        "formal_d_demo_aggregate_sha256":
+            "synthetic-formal-demo-aggregate-sha256",
+    }
+
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(
             tmp
@@ -368,6 +400,9 @@ def main():
 
                             git_commit=
                                 synthetic_commit,
+
+                            input_provenance=
+                                synthetic_input_provenance,
                         ),
                 )
 
@@ -380,6 +415,9 @@ def main():
 
             expected_git_commit=
                 synthetic_commit,
+
+            expected_input_provenance=
+                synthetic_input_provenance,
         )
 
         assert len(
@@ -445,6 +483,154 @@ def main():
 
 
         # --------------------------------------------------------
+        # Missing input provenance must hard-fail.
+        # --------------------------------------------------------
+
+        provenance_probe_path = (
+            root
+            /
+            formal_pair_output_name(
+                bc_weight=
+                    0.3,
+
+                seed=
+                    43,
+            )
+        )
+
+        original_probe_payload = json.loads(
+            provenance_probe_path.read_text(
+                encoding="utf-8"
+            )
+        )
+
+        missing_provenance_payload = dict(
+            original_probe_payload
+        )
+
+        missing_provenance_payload.pop(
+            "input_provenance"
+        )
+
+        provenance_probe_path.write_text(
+            json.dumps(
+                missing_provenance_payload,
+                indent=2,
+                sort_keys=True,
+                allow_nan=False,
+            )
+            +
+            "\n",
+            encoding="utf-8",
+        )
+
+        try:
+            load_formal_grid_from_pair_artifacts(
+                output_root=
+                    root,
+
+                expected_git_commit=
+                    synthetic_commit,
+
+                expected_input_provenance=
+                    synthetic_input_provenance,
+            )
+
+        except CalibrationRunnerError:
+            pass
+
+        else:
+            raise AssertionError(
+                "Formal pair missing input provenance "
+                "was unexpectedly accepted"
+            )
+
+        provenance_probe_path.write_text(
+            json.dumps(
+                original_probe_payload,
+                indent=2,
+                sort_keys=True,
+                allow_nan=False,
+            )
+            +
+            "\n",
+            encoding="utf-8",
+        )
+
+
+        # --------------------------------------------------------
+        # One pair with different provenance must hard-fail.
+        # --------------------------------------------------------
+
+        mismatched_payload = json.loads(
+            provenance_probe_path.read_text(
+                encoding="utf-8"
+            )
+        )
+
+        mismatched_payload[
+            "input_provenance"
+        ] = dict(
+            mismatched_payload[
+                "input_provenance"
+            ]
+        )
+
+        mismatched_payload[
+            "input_provenance"
+        ][
+            "loopycuts_executable_sha256"
+        ] = (
+            "DIFFERENT-SYNTHETIC-EXECUTABLE-SHA256"
+        )
+
+        provenance_probe_path.write_text(
+            json.dumps(
+                mismatched_payload,
+                indent=2,
+                sort_keys=True,
+                allow_nan=False,
+            )
+            +
+            "\n",
+            encoding="utf-8",
+        )
+
+        try:
+            load_formal_grid_from_pair_artifacts(
+                output_root=
+                    root,
+
+                expected_git_commit=
+                    synthetic_commit,
+
+                expected_input_provenance=
+                    synthetic_input_provenance,
+            )
+
+        except CalibrationRunnerError:
+            pass
+
+        else:
+            raise AssertionError(
+                "Formal pair with mismatched input provenance "
+                "was unexpectedly accepted"
+            )
+
+        provenance_probe_path.write_text(
+            json.dumps(
+                original_probe_payload,
+                indent=2,
+                sort_keys=True,
+                allow_nan=False,
+            )
+            +
+            "\n",
+            encoding="utf-8",
+        )
+
+
+        # --------------------------------------------------------
         # Incomplete formal grid must hard-fail.
         # --------------------------------------------------------
 
@@ -469,6 +655,9 @@ def main():
 
                 expected_git_commit=
                     synthetic_commit,
+
+                expected_input_provenance=
+                    synthetic_input_provenance,
             )
 
         except CalibrationRunnerError:

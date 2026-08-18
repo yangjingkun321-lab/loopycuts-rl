@@ -1,0 +1,95 @@
+{
+  "calibration_version": "bc_weight_calibration_v2",
+  "dataset_manifest": {
+    "path": "data/manifests/dataset_split_v2.csv",
+    "sha256": "e7bc6ba976417d427d9a105f5b90a54c304c08fdd0baff542e083c8f42ff826b"
+  },
+  "demo_quality_manifest": {
+    "path": "data/manifests/demo_quality_v1.csv",
+    "sha256": "4fa404d8436fce4aebef526eac6ab904fe3c6b846432f8fc1256cbc416b66f89"
+  },
+  "engineering_calibration": {
+    "inputs": {
+      "BracketInches": {
+        "loop_bytes": 225902,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/BracketInches/BracketInches_rem_rem_loop.txt",
+        "loop_sha256": "39fa9d43b168a98257b74f4a450421c3c17a7cfb7ce9c6b04a965a2b2ec436c7",
+        "mesh_bytes": 1740165,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/BracketInches/BracketInches_rem_rem_splitted.obj",
+        "mesh_sha256": "370d26bc4af673757bafcc8006f70e658343bc762d28985b3de8530cf1b2673b"
+      },
+      "bimba": {
+        "loop_bytes": 184729,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/bimba/bimba_rem_loop.txt",
+        "loop_sha256": "fdf1ea8e1fd77eae4221fdd26091d51d09debd59ef5a533f1e17a490acfff215",
+        "mesh_bytes": 1944977,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/bimba/bimba_rem_splitted.obj",
+        "mesh_sha256": "396ae4fb254447ca21b4cadf403c7fe310bc48f491dd4b159dda184acaf86233"
+      },
+      "cylinder_plate": {
+        "loop_bytes": 130460,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/cylinder_plate/cylinder_plate_rem_loop.txt",
+        "loop_sha256": "1f8a93405c658b566bd810d358ea8b3c667f37bd9c9730610f7861016b6b814d",
+        "mesh_bytes": 733566,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/cylinder_plate/cylinder_plate_rem_splitted.obj",
+        "mesh_sha256": "00a90aaa98ef7f4b690f01b3cfaee56633e10163963c08426f38a161b9933b58"
+      },
+      "deckel": {
+        "loop_bytes": 129795,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/deckel/deckel_rem_loop.txt",
+        "loop_sha256": "ad9bd3c47fa05465f2cfcf23c64eeb48b36de10d1c1b664b754f6828de89045f",
+        "mesh_bytes": 963285,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/deckel/deckel_rem_splitted.obj",
+        "mesh_sha256": "e3a9e86620a52b25f965cf75cdeca447e6b706f9a4823d03ab72e3d72e5f3710"
+      },
+      "eraser_ball": {
+        "loop_bytes": 103639,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/eraser_ball/eraser_ball_rem_rem_loop.txt",
+        "loop_sha256": "3aa66db00a93e0427d314c106c564aabf68ac10f289d956b97160bdf8e0cd623",
+        "mesh_bytes": 766903,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/eraser_ball/eraser_ball_rem_rem_splitted.obj",
+        "mesh_sha256": "556841602250c1c38b79648e371b8dd6b06f4b69ddc421e56cc8031fbf1f3f10"
+      }
+    },
+    "models": [
+      "bimba",
+      "deckel",
+      "BracketInches",
+      "eraser_ball",
+      "cylinder_plate"
+    ]
+  },
+  "formal_d_demo": {
+    "aggregate_fingerprint_algorithm": "SORT_BY_MODEL_THEN_SHA256_OF_TAB_SEPARATED_MODEL_STEPS_RESOLVED_NPZ_PATH_NPZ_SHA256_RESOLVED_METADATA_PATH_METADATA_SHA256",
+    "aggregate_sha256": "e4de643107462712e63b55ea5839fa92293d8256b255d7f5fb03ec9619e3c383",
+    "episodes": 30,
+    "raw_root": "/home/yjk/loopycuts_test/demonstrations_v1/raw/train",
+    "transitions": 605
+  },
+  "loopycuts": {
+    "executable": {
+      "path": "/home/yjk/codes/LoopyCuts/volumetric_cutter/volumetric_cutter",
+      "sha256": "920ff358d7840dfa13dc53cc0b603721347cc77e8951afb14d322de14f84a565"
+    },
+    "source_base_commit": "03bcff8b09ce6c03b75a1ee59e43bc5aeac3730c",
+    "source_root": "/home/yjk/codes/LoopyCuts",
+    "source_worktree_clean_required": false,
+    "source_worktree_policy": "DIRTY_ALLOWED_EXECUTABLE_SHA256_IS_AUTHORITATIVE_RUNTIME_IDENTITY",
+    "submodules": {
+      "lib/cinolib": "3d53718818480c99306d3d6830f49c3604d33ebd",
+      "lib/cinolib/external/eigen": "36b95962756c1fce8e29b1f8bc45967f30773c00",
+      "lib/cinolib/external/graph_cut": "66376566852b704a0e57bf49dcac74ee5210ff18",
+      "lib/vcg": "fb5258c157f9a9c40cbf4cc914dc1a7622865207"
+    }
+  },
+  "rl_repository_policy": "CURRENT_CLEAN_HEAD_RECORDED_PER_FORMAL_PAIR_AND_REQUIRED_IDENTICAL_BY_SELECTOR",
+  "runner_version": "bc_weight_calibration_runner_v2",
+  "runtime": {
+    "numpy": "1.24.4",
+    "python": "3.11.15",
+    "thread_policy": "NOT_FROZEN_HERE_PHASE_17_5I",
+    "tianshou": "2.0.1",
+    "torch": "2.1.1+cpu"
+  },
+  "schema_version": "bc_weight_calibration_input_provenance_v1"
+}

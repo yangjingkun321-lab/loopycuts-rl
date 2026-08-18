@@ -83,6 +83,10 @@ from policies.masked_discrete_sac import (
     MaskedDiscreteSACPolicy,
 )
 
+from training.bc_weight_input_provenance_v1 import (
+    assert_frozen_input_provenance,
+)
+
 from training.bc_weight_calibration_v1 import (
     CALIBRATION_RESULT_SCHEMA_VERSION,
     CalibrationEpisodeResult,
@@ -165,6 +169,11 @@ DEFAULT_RAW_DEMO_ROOT = Path(
 DEFAULT_DEMO_QUALITY = Path(
     "data/manifests/"
     "demo_quality_v1.csv"
+)
+
+DEFAULT_INPUT_PROVENANCE = Path(
+    "data/manifests/"
+    "bc_weight_calibration_input_provenance_v1.json"
 )
 
 DEFAULT_SMOKE_OUTPUT_ROOT = Path(
@@ -1660,6 +1669,35 @@ def run_formal_pair(
         git_head()
     )
 
+    input_provenance = (
+        assert_frozen_input_provenance(
+            provenance_path=
+                Path(
+                    args.input_provenance
+                ),
+
+            executable=
+                Path(
+                    args.executable
+                ),
+
+            dataset_manifest=
+                Path(
+                    args.manifest
+                ),
+
+            demo_quality_manifest=
+                Path(
+                    args.demo_quality
+                ),
+
+            raw_demo_root=
+                Path(
+                    args.raw_demo_root
+                ),
+        )
+    )
+
     print("=" * 112)
     print("BC-WEIGHT CALIBRATION RUNNER V2 -- FORMAL PAIR")
     print("=" * 112)
@@ -1971,6 +2009,9 @@ def run_formal_pair(
         "git_commit":
             commit,
 
+        "input_provenance":
+            input_provenance,
+
         "python_version":
             sys.version,
 
@@ -2116,6 +2157,7 @@ def load_formal_grid_from_pair_artifacts(
     *,
     output_root: Path,
     expected_git_commit: str | None = None,
+    expected_input_provenance: dict | None = None,
 ):
     output_root = Path(
         output_root
@@ -2302,6 +2344,32 @@ def load_formal_grid_from_pair_artifacts(
                 f"{expected_path}: Git commit mismatch; "
                 "all formal pairs must come from exactly "
                 "the same committed runner/protocol state"
+            )
+
+        pair_input_provenance = (
+            payload.get(
+                "input_provenance"
+            )
+        )
+
+        if not isinstance(
+            pair_input_provenance,
+            dict,
+        ):
+            raise CalibrationRunnerError(
+                f"{expected_path}: missing formal input provenance"
+            )
+
+        if (
+            expected_input_provenance
+            is not None
+            and
+            pair_input_provenance
+            !=
+            expected_input_provenance
+        ):
+            raise CalibrationRunnerError(
+                f"{expected_path}: formal input provenance mismatch"
             )
 
         bc_weight = (
@@ -2556,6 +2624,35 @@ def run_select(
         git_head()
     )
 
+    current_input_provenance = (
+        assert_frozen_input_provenance(
+            provenance_path=
+                Path(
+                    args.input_provenance
+                ),
+
+            executable=
+                Path(
+                    args.executable
+                ),
+
+            dataset_manifest=
+                Path(
+                    args.manifest
+                ),
+
+            demo_quality_manifest=
+                Path(
+                    args.demo_quality
+                ),
+
+            raw_demo_root=
+                Path(
+                    args.raw_demo_root
+                ),
+        )
+    )
+
     (
         rows,
         artifact_records,
@@ -2567,6 +2664,9 @@ def run_select(
 
         expected_git_commit=
             current_commit,
+
+        expected_input_provenance=
+            current_input_provenance,
     )
 
     (
@@ -2591,6 +2691,9 @@ def run_select(
 
         "git_commit":
             current_commit,
+
+        "input_provenance":
+            current_input_provenance,
 
         "pair_artifact_count":
             len(
@@ -2806,6 +2909,13 @@ def parse_args():
         type=Path,
         default=
             DEFAULT_DEMO_QUALITY,
+    )
+
+    parser.add_argument(
+        "--input-provenance",
+        type=Path,
+        default=
+            DEFAULT_INPUT_PROVENANCE,
     )
 
     parser.add_argument(
