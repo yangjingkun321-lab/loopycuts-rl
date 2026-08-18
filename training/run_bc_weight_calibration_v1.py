@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import math
 import platform
@@ -83,7 +84,10 @@ from policies.masked_discrete_sac import (
 )
 
 from training.bc_weight_calibration_v1 import (
+    CALIBRATION_RESULT_SCHEMA_VERSION,
     CalibrationEpisodeResult,
+    select_best_bc_weight,
+    validate_complete_result_grid,
     validate_episode_result,
 )
 
@@ -168,11 +172,163 @@ DEFAULT_SMOKE_OUTPUT_ROOT = Path(
     "bc_weight_calibration_smoke_v2"
 )
 
+DEFAULT_FORMAL_OUTPUT_ROOT = Path(
+    "/home/yjk/loopycuts_test/"
+    "bc_weight_calibration_v2/"
+    "formal_pairs"
+)
+
+DEFAULT_SELECTION_OUTPUT = Path(
+    "/home/yjk/loopycuts_test/"
+    "bc_weight_calibration_v2/"
+    "bc_weight_selection_v1.json"
+)
+
 
 class CalibrationRunnerError(
     RuntimeError
 ):
     pass
+
+
+def sha256_file(
+    path: Path,
+):
+    path = Path(
+        path
+    )
+
+    h = hashlib.sha256()
+
+    with path.open(
+        "rb"
+    ) as f:
+        for chunk in iter(
+            lambda:
+                f.read(
+                    1024 * 1024
+                ),
+            b"",
+        ):
+            h.update(
+                chunk
+            )
+
+    return h.hexdigest()
+
+
+def canonical_formal_candidate(
+    value: float,
+):
+    value = float(
+        value
+    )
+
+    matches = [
+        float(
+            candidate
+        )
+        for candidate in
+        PROJECT_BC_WEIGHT_CALIBRATION_CANDIDATES
+        if math.isclose(
+            value,
+            float(
+                candidate
+            ),
+            rel_tol=0.0,
+            abs_tol=1.0e-12,
+        )
+    ]
+
+    if len(
+        matches
+    ) != 1:
+        raise CalibrationRunnerError(
+            "Formal bc_weight must be exactly "
+            "one of the frozen candidates: "
+            f"{PROJECT_BC_WEIGHT_CALIBRATION_CANDIDATES}"
+        )
+
+    return matches[
+        0
+    ]
+
+
+def formal_pair_output_name(
+    *,
+    bc_weight: float,
+    seed: int,
+):
+    bc_weight = (
+        canonical_formal_candidate(
+            bc_weight
+        )
+    )
+
+    weight_text = (
+        f"{bc_weight:g}"
+        .replace(
+            ".",
+            "p",
+        )
+    )
+
+    return (
+        f"formal_lambda_{weight_text}_"
+        f"seed_{int(seed)}.json"
+    )
+
+
+def atomic_write_json(
+    *,
+    path: Path,
+    payload,
+):
+    path = Path(
+        path
+    )
+
+    if path.exists():
+        raise CalibrationRunnerError(
+            "Refusing to overwrite existing "
+            f"artifact: {path}"
+        )
+
+    path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    temp_path = (
+        path.with_suffix(
+            path.suffix
+            +
+            ".tmp"
+        )
+    )
+
+    if temp_path.exists():
+        raise CalibrationRunnerError(
+            "Temporary artifact already exists; "
+            "diagnose the previous interrupted run: "
+            f"{temp_path}"
+        )
+
+    temp_path.write_text(
+        json.dumps(
+            payload,
+            indent=2,
+            sort_keys=True,
+            allow_nan=False,
+        )
+        +
+        "\n",
+        encoding="utf-8",
+    )
+
+    temp_path.replace(
+        path
+    )
 
 
 def git_head() -> str:
@@ -1450,6 +1606,1094 @@ def run_smoke(
     print("=" * 112)
 
 
+def run_formal_pair(
+    args,
+):
+    assert_clean_repository()
+    assert_protocol()
+
+    bc_weight = (
+        canonical_formal_candidate(
+            args.bc_weight
+        )
+    )
+
+    seed = int(
+        args.seed
+    )
+
+    if (
+        seed
+        not in
+        PROJECT_BC_WEIGHT_CALIBRATION_SEEDS
+    ):
+        raise CalibrationRunnerError(
+            "Formal seed must be one of the "
+            "frozen calibration seeds: "
+            f"{PROJECT_BC_WEIGHT_CALIBRATION_SEEDS}"
+        )
+
+    output_root = Path(
+        args.formal_output_root
+    )
+
+    output_path = (
+        output_root
+        /
+        formal_pair_output_name(
+            bc_weight=
+                bc_weight,
+
+            seed=
+                seed,
+        )
+    )
+
+    if output_path.exists():
+        raise CalibrationRunnerError(
+            "Formal pair artifact already exists; "
+            "refusing silent overwrite: "
+            f"{output_path}"
+        )
+
+    commit = (
+        git_head()
+    )
+
+    print("=" * 112)
+    print("BC-WEIGHT CALIBRATION RUNNER V2 -- FORMAL PAIR")
+    print("=" * 112)
+
+    print(
+        "git commit     :",
+        commit,
+    )
+
+    print(
+        "bc_weight      :",
+        bc_weight,
+    )
+
+    print(
+        "seed           :",
+        seed,
+    )
+
+    print(
+        "Stage-I updates:",
+        PROJECT_BC_WEIGHT_CALIBRATION_STAGE1_GRADIENT_STEPS,
+    )
+
+    print(
+        "eval models    :",
+        PROJECT_BC_WEIGHT_CALIBRATION_MODELS,
+    )
+
+    print(
+        "output         :",
+        output_path,
+    )
+
+    print()
+
+
+    # ============================================================
+    # Frozen formal D_demo.
+    # ============================================================
+
+    set_run_seed(
+        seed
+    )
+
+    (
+        demo_buffer,
+        demo_records,
+        demo_provenance,
+    ) = load_main_demo_replay(
+        raw_root=
+            Path(
+                args.raw_demo_root
+            ),
+
+        quality_manifest=
+            Path(
+                args.demo_quality
+            ),
+
+        random_seed=
+            seed,
+    )
+
+    if (
+        len(
+            demo_buffer
+        )
+        !=
+        PROJECT_MAIN_DEMO_TRANSITIONS
+    ):
+        raise CalibrationRunnerError(
+            "Formal D_demo transition-count mismatch"
+        )
+
+    if (
+        len(
+            demo_records
+        )
+        !=
+        PROJECT_MAIN_DEMO_EPISODES
+    ):
+        raise CalibrationRunnerError(
+            "Formal D_demo episode-count mismatch"
+        )
+
+    loaded_models = tuple(
+        record[
+            "model"
+        ]
+        for record in
+        demo_records
+    )
+
+    if (
+        loaded_models
+        !=
+        PROJECT_MAIN_DEMO_MODELS
+    ):
+        raise CalibrationRunnerError(
+            "Formal D_demo model order/content mismatch"
+        )
+
+
+    # ============================================================
+    # Exactly one Stage-I run for this (lambda, seed) pair.
+    # ============================================================
+
+    (
+        algorithm,
+        policy,
+        auto_alpha,
+    ) = build_stage1_algorithm(
+        bc_weight=
+            bc_weight,
+
+        seed=
+            seed,
+    )
+
+    if not math.isclose(
+        auto_alpha.value,
+        PROJECT_INITIAL_ALPHA,
+        rel_tol=1.0e-6,
+        abs_tol=1.0e-6,
+    ):
+        raise CalibrationRunnerError(
+            "Initial alpha mismatch"
+        )
+
+    print("=" * 112)
+    print("STAGE-I OFFLINE TRAINING")
+    print("=" * 112)
+
+    stage1_record = (
+        run_stage1(
+            algorithm=
+                algorithm,
+
+            policy=
+                policy,
+
+            demo_buffer=
+                demo_buffer,
+        )
+    )
+
+    stage1_record[
+        "alpha_after_stage1"
+    ] = float(
+        auto_alpha.value
+    )
+
+
+    # ============================================================
+    # Five deterministic engineering evaluations using the SAME
+    # post-Stage-I algorithm.  No further learning occurs here.
+    # ============================================================
+
+    print()
+    print("=" * 112)
+    print("ENGINEERING-CALIBRATION EVALUATIONS")
+    print("=" * 112)
+
+    evaluation_payloads = []
+    selector_rows = []
+
+    for model in (
+        PROJECT_BC_WEIGHT_CALIBRATION_MODELS
+    ):
+        print()
+        print(
+            f"[EVAL] {model}"
+        )
+
+        (
+            episode_result,
+            evaluation_provenance,
+        ) = evaluate_engineering_model(
+            algorithm=
+                algorithm,
+
+            executable=
+                Path(
+                    args.executable
+                ),
+
+            manifest=
+                Path(
+                    args.manifest
+                ),
+
+            model=
+                model,
+
+            bc_weight=
+                bc_weight,
+
+            seed=
+                seed,
+        )
+
+        selector_rows.append(
+            episode_result
+        )
+
+        evaluation_payloads.append(
+            {
+                **asdict(
+                    episode_result
+                ),
+
+                **evaluation_provenance,
+            }
+        )
+
+        print(
+            "outcome       :",
+            episode_result.outcome,
+        )
+
+        print(
+            "episode return:",
+            episode_result.episode_return,
+        )
+
+        print(
+            "hex / total   :",
+            episode_result.final_hex,
+            "/",
+            episode_result.final_total_polys,
+        )
+
+
+    observed_models = tuple(
+        row.model
+        for row in
+        selector_rows
+    )
+
+    if (
+        observed_models
+        !=
+        PROJECT_BC_WEIGHT_CALIBRATION_MODELS
+    ):
+        raise CalibrationRunnerError(
+            "Formal pair evaluation model order mismatch"
+        )
+
+    if (
+        len(
+            selector_rows
+        )
+        !=
+        len(
+            PROJECT_BC_WEIGHT_CALIBRATION_MODELS
+        )
+    ):
+        raise CalibrationRunnerError(
+            "Formal pair must contain exactly "
+            "five engineering evaluations"
+        )
+
+    for row in selector_rows:
+        validate_episode_result(
+            row
+        )
+
+        if not math.isclose(
+            row.bc_weight,
+            bc_weight,
+            rel_tol=0.0,
+            abs_tol=1.0e-12,
+        ):
+            raise CalibrationRunnerError(
+                "Evaluation bc_weight mismatch"
+            )
+
+        if row.seed != seed:
+            raise CalibrationRunnerError(
+                "Evaluation seed mismatch"
+            )
+
+
+    # ============================================================
+    # Write only AFTER all five evaluations have completed.
+    # This prevents a partial pair from entering the formal grid.
+    # ============================================================
+
+    payload = {
+        "runner_version":
+            RUNNER_VERSION,
+
+        "calibration_version":
+            PROJECT_BC_WEIGHT_CALIBRATION_VERSION,
+
+        "result_schema_version":
+            CALIBRATION_RESULT_SCHEMA_VERSION,
+
+        "run_kind":
+            "FORMAL_BC_WEIGHT_CALIBRATION_PAIR",
+
+        "selector_eligible":
+            True,
+
+        "formal_grid_member":
+            True,
+
+        "git_commit":
+            commit,
+
+        "python_version":
+            sys.version,
+
+        "platform":
+            platform.platform(),
+
+        "torch_version":
+            torch.__version__,
+
+        "tianshou_version":
+            tianshou.__version__,
+
+        "torch_num_threads":
+            torch.get_num_threads(),
+
+        "bc_weight":
+            bc_weight,
+
+        "seed":
+            seed,
+
+        "device":
+            PROJECT_BC_WEIGHT_CALIBRATION_DEVICE,
+
+        "demo_provenance":
+            demo_provenance,
+
+        "stage1":
+            stage1_record,
+
+        "evaluations":
+            evaluation_payloads,
+    }
+
+    atomic_write_json(
+        path=
+            output_path,
+
+        payload=
+            payload,
+    )
+
+    print()
+    print(
+        "formal pair artifact:",
+        output_path,
+    )
+
+    print(
+        "sha256:",
+        sha256_file(
+            output_path
+        ),
+    )
+
+    print()
+    print("=" * 112)
+    print(
+        "PASS: formal pair completed one 782-update "
+        "Stage-I run and all five engineering evaluations"
+    )
+    print(
+        "PASS: artifact is selector-eligible and "
+        "was written only after the pair completed"
+    )
+    print("=" * 112)
+
+
+def _episode_result_from_payload(
+    data,
+):
+    final_hex = data.get(
+        "final_hex"
+    )
+
+    final_total = data.get(
+        "final_total_polys"
+    )
+
+    if final_hex is not None:
+        final_hex = int(
+            final_hex
+        )
+
+    if final_total is not None:
+        final_total = int(
+            final_total
+        )
+
+    row = (
+        CalibrationEpisodeResult(
+            bc_weight=
+                float(
+                    data[
+                        "bc_weight"
+                    ]
+                ),
+
+            seed=
+                int(
+                    data[
+                        "seed"
+                    ]
+                ),
+
+            model=
+                str(
+                    data[
+                        "model"
+                    ]
+                ),
+
+            outcome=
+                str(
+                    data[
+                        "outcome"
+                    ]
+                ),
+
+            episode_return=
+                float(
+                    data[
+                        "episode_return"
+                    ]
+                ),
+
+            final_hex=
+                final_hex,
+
+            final_total_polys=
+                final_total,
+        )
+    )
+
+    validate_episode_result(
+        row
+    )
+
+    return row
+
+
+def load_formal_grid_from_pair_artifacts(
+    *,
+    output_root: Path,
+    expected_git_commit: str | None = None,
+):
+    output_root = Path(
+        output_root
+    )
+
+    if not output_root.is_dir():
+        raise CalibrationRunnerError(
+            "Formal pair directory does not exist: "
+            f"{output_root}"
+        )
+
+    if expected_git_commit is None:
+        expected_git_commit = (
+            git_head()
+        )
+
+    expected_paths = []
+
+    for bc_weight in (
+        PROJECT_BC_WEIGHT_CALIBRATION_CANDIDATES
+    ):
+        for seed in (
+            PROJECT_BC_WEIGHT_CALIBRATION_SEEDS
+        ):
+            expected_paths.append(
+                output_root
+                /
+                formal_pair_output_name(
+                    bc_weight=
+                        bc_weight,
+
+                    seed=
+                        seed,
+                )
+            )
+
+    expected_names = {
+        path.name
+        for path in
+        expected_paths
+    }
+
+    actual_paths = tuple(
+        sorted(
+            output_root.glob(
+                "formal_lambda_*_seed_*.json"
+            )
+        )
+    )
+
+    actual_names = {
+        path.name
+        for path in
+        actual_paths
+    }
+
+    missing_names = (
+        expected_names
+        -
+        actual_names
+    )
+
+    extra_names = (
+        actual_names
+        -
+        expected_names
+    )
+
+    if missing_names:
+        raise CalibrationRunnerError(
+            "Formal calibration grid is incomplete; "
+            "missing pair artifacts: "
+            +
+            ", ".join(
+                sorted(
+                    missing_names
+                )
+            )
+        )
+
+    if extra_names:
+        raise CalibrationRunnerError(
+            "Unexpected formal pair artifacts: "
+            +
+            ", ".join(
+                sorted(
+                    extra_names
+                )
+            )
+        )
+
+    if len(
+        actual_paths
+    ) != 15:
+        raise CalibrationRunnerError(
+            "Formal calibration requires exactly "
+            f"15 pair artifacts; got {len(actual_paths)}"
+        )
+
+    rows = []
+    artifact_records = []
+
+    for expected_path in (
+        expected_paths
+    ):
+        payload = json.loads(
+            expected_path.read_text(
+                encoding="utf-8"
+            )
+        )
+
+        if (
+            payload.get(
+                "runner_version"
+            )
+            !=
+            RUNNER_VERSION
+        ):
+            raise CalibrationRunnerError(
+                f"{expected_path}: runner version mismatch"
+            )
+
+        if (
+            payload.get(
+                "calibration_version"
+            )
+            !=
+            PROJECT_BC_WEIGHT_CALIBRATION_VERSION
+        ):
+            raise CalibrationRunnerError(
+                f"{expected_path}: calibration version mismatch"
+            )
+
+        if (
+            payload.get(
+                "result_schema_version"
+            )
+            !=
+            CALIBRATION_RESULT_SCHEMA_VERSION
+        ):
+            raise CalibrationRunnerError(
+                f"{expected_path}: result schema mismatch"
+            )
+
+        if (
+            payload.get(
+                "run_kind"
+            )
+            !=
+            "FORMAL_BC_WEIGHT_CALIBRATION_PAIR"
+        ):
+            raise CalibrationRunnerError(
+                f"{expected_path}: wrong run kind"
+            )
+
+        if (
+            payload.get(
+                "selector_eligible"
+            )
+            is not True
+        ):
+            raise CalibrationRunnerError(
+                f"{expected_path}: not selector eligible"
+            )
+
+        if (
+            payload.get(
+                "formal_grid_member"
+            )
+            is not True
+        ):
+            raise CalibrationRunnerError(
+                f"{expected_path}: not a formal grid member"
+            )
+
+        if (
+            payload.get(
+                "git_commit"
+            )
+            !=
+            expected_git_commit
+        ):
+            raise CalibrationRunnerError(
+                f"{expected_path}: Git commit mismatch; "
+                "all formal pairs must come from exactly "
+                "the same committed runner/protocol state"
+            )
+
+        bc_weight = (
+            canonical_formal_candidate(
+                payload[
+                    "bc_weight"
+                ]
+            )
+        )
+
+        seed = int(
+            payload[
+                "seed"
+            ]
+        )
+
+        expected_name = (
+            formal_pair_output_name(
+                bc_weight=
+                    bc_weight,
+
+                seed=
+                    seed,
+            )
+        )
+
+        if (
+            expected_name
+            !=
+            expected_path.name
+        ):
+            raise CalibrationRunnerError(
+                f"{expected_path}: filename/payload mismatch"
+            )
+
+        if (
+            seed
+            not in
+            PROJECT_BC_WEIGHT_CALIBRATION_SEEDS
+        ):
+            raise CalibrationRunnerError(
+                f"{expected_path}: invalid formal seed"
+            )
+
+
+        demo = payload[
+            "demo_provenance"
+        ]
+
+        if int(
+            demo[
+                "episodes"
+            ]
+        ) != PROJECT_MAIN_DEMO_EPISODES:
+            raise CalibrationRunnerError(
+                f"{expected_path}: D_demo episode mismatch"
+            )
+
+        if int(
+            demo[
+                "transitions"
+            ]
+        ) != PROJECT_MAIN_DEMO_TRANSITIONS:
+            raise CalibrationRunnerError(
+                f"{expected_path}: D_demo transition mismatch"
+            )
+
+        if int(
+            demo[
+                "random_seed"
+            ]
+        ) != seed:
+            raise CalibrationRunnerError(
+                f"{expected_path}: replay seed mismatch"
+            )
+
+
+        stage1 = payload[
+            "stage1"
+        ]
+
+        if int(
+            stage1[
+                "gradient_updates"
+            ]
+        ) != PROJECT_BC_WEIGHT_CALIBRATION_STAGE1_GRADIENT_STEPS:
+            raise CalibrationRunnerError(
+                f"{expected_path}: Stage-I update mismatch"
+            )
+
+        if int(
+            stage1[
+                "sampled_demo_transitions"
+            ]
+        ) != (
+            PROJECT_BC_WEIGHT_CALIBRATION_STAGE1_GRADIENT_STEPS
+            *
+            PAPER_BATCH_SIZE
+        ):
+            raise CalibrationRunnerError(
+                f"{expected_path}: Stage-I exposure mismatch"
+            )
+
+
+        evaluations = payload.get(
+            "evaluations"
+        )
+
+        if not isinstance(
+            evaluations,
+            list,
+        ):
+            raise CalibrationRunnerError(
+                f"{expected_path}: evaluations must be a list"
+            )
+
+        if (
+            len(
+                evaluations
+            )
+            !=
+            len(
+                PROJECT_BC_WEIGHT_CALIBRATION_MODELS
+            )
+        ):
+            raise CalibrationRunnerError(
+                f"{expected_path}: expected exactly "
+                "five engineering evaluations"
+            )
+
+        pair_rows = [
+            _episode_result_from_payload(
+                evaluation
+            )
+            for evaluation in
+            evaluations
+        ]
+
+        if tuple(
+            row.model
+            for row in
+            pair_rows
+        ) != PROJECT_BC_WEIGHT_CALIBRATION_MODELS:
+            raise CalibrationRunnerError(
+                f"{expected_path}: evaluation model set/order mismatch"
+            )
+
+        for row in pair_rows:
+            if not math.isclose(
+                row.bc_weight,
+                bc_weight,
+                rel_tol=0.0,
+                abs_tol=1.0e-12,
+            ):
+                raise CalibrationRunnerError(
+                    f"{expected_path}: row lambda mismatch"
+                )
+
+            if row.seed != seed:
+                raise CalibrationRunnerError(
+                    f"{expected_path}: row seed mismatch"
+                )
+
+        rows.extend(
+            pair_rows
+        )
+
+        artifact_records.append(
+            {
+                "path":
+                    str(
+                        expected_path
+                        .resolve()
+                    ),
+
+                "sha256":
+                    sha256_file(
+                        expected_path
+                    ),
+
+                "bc_weight":
+                    bc_weight,
+
+                "seed":
+                    seed,
+            }
+        )
+
+    rows = (
+        validate_complete_result_grid(
+            rows
+        )
+    )
+
+    if len(
+        rows
+    ) != 75:
+        raise CalibrationRunnerError(
+            "Validated formal grid must contain "
+            f"75 rows; got {len(rows)}"
+        )
+
+    return (
+        rows,
+        tuple(
+            artifact_records
+        ),
+    )
+
+
+def _summary_json(
+    summary,
+):
+    data = asdict(
+        summary
+    )
+
+    metric = float(
+        data[
+            "aggregate_nonhex_fraction"
+        ]
+    )
+
+    if not math.isfinite(
+        metric
+    ):
+        data[
+            "aggregate_nonhex_fraction"
+        ] = None
+
+    return data
+
+
+def run_select(
+    args,
+):
+    assert_clean_repository()
+    assert_protocol()
+
+    selection_output = Path(
+        args.selection_output
+    )
+
+    if selection_output.exists():
+        raise CalibrationRunnerError(
+            "Selection artifact already exists; "
+            "refusing silent overwrite: "
+            f"{selection_output}"
+        )
+
+    current_commit = (
+        git_head()
+    )
+
+    (
+        rows,
+        artifact_records,
+    ) = load_formal_grid_from_pair_artifacts(
+        output_root=
+            Path(
+                args.formal_output_root
+            ),
+
+        expected_git_commit=
+            current_commit,
+    )
+
+    (
+        winner,
+        summaries,
+    ) = select_best_bc_weight(
+        rows
+    )
+
+    payload = {
+        "runner_version":
+            RUNNER_VERSION,
+
+        "calibration_version":
+            PROJECT_BC_WEIGHT_CALIBRATION_VERSION,
+
+        "result_schema_version":
+            CALIBRATION_RESULT_SCHEMA_VERSION,
+
+        "run_kind":
+            "FORMAL_BC_WEIGHT_CALIBRATION_SELECTION",
+
+        "git_commit":
+            current_commit,
+
+        "pair_artifact_count":
+            len(
+                artifact_records
+            ),
+
+        "episode_result_count":
+            len(
+                rows
+            ),
+
+        "pair_artifacts":
+            list(
+                artifact_records
+            ),
+
+        "winner":
+            _summary_json(
+                winner
+            ),
+
+        "candidate_summaries":
+            [
+                _summary_json(
+                    summary
+                )
+                for summary in
+                summaries
+            ],
+    }
+
+    atomic_write_json(
+        path=
+            selection_output,
+
+        payload=
+            payload,
+    )
+
+    print("=" * 112)
+    print("FORMAL BC-WEIGHT CALIBRATION SELECTION")
+    print("=" * 112)
+
+    print(
+        "Git commit:",
+        current_commit,
+    )
+
+    print(
+        "pair artifacts:",
+        len(
+            artifact_records
+        ),
+    )
+
+    print(
+        "episode rows:",
+        len(
+            rows
+        ),
+    )
+
+    print()
+
+    for summary in summaries:
+        print(
+            "lambda="
+            f"{summary.bc_weight:<4g}"
+            " full_hex="
+            f"{summary.full_hex_count:2d}"
+            " crashes="
+            f"{summary.finalization_crash_count:2d}"
+            " nonhex="
+            f"{summary.aggregate_nonhex_fraction}"
+            " mean_return="
+            f"{summary.mean_episode_return}"
+        )
+
+    print()
+    print(
+        "WINNER lambda_BC:",
+        winner.bc_weight,
+    )
+
+    print(
+        "selection artifact:",
+        selection_output,
+    )
+
+    print(
+        "selection sha256:",
+        sha256_file(
+            selection_output
+        ),
+    )
+
+    print()
+    print(
+        "PASS: complete frozen 75-row grid "
+        "was selected using the committed selector"
+    )
+
+
 def print_plan():
     assert_protocol()
 
@@ -1513,6 +2757,8 @@ def parse_args():
         choices=(
             "plan",
             "smoke",
+            "formal-pair",
+            "select",
         ),
         required=True,
     )
@@ -1569,6 +2815,20 @@ def parse_args():
             DEFAULT_SMOKE_OUTPUT_ROOT,
     )
 
+    parser.add_argument(
+        "--formal-output-root",
+        type=Path,
+        default=
+            DEFAULT_FORMAL_OUTPUT_ROOT,
+    )
+
+    parser.add_argument(
+        "--selection-output",
+        type=Path,
+        default=
+            DEFAULT_SELECTION_OUTPUT,
+    )
+
     return parser.parse_args()
 
 
@@ -1581,6 +2841,18 @@ def main():
 
     if args.mode == "smoke":
         run_smoke(
+            args
+        )
+        return
+
+    if args.mode == "formal-pair":
+        run_formal_pair(
+            args
+        )
+        return
+
+    if args.mode == "select":
+        run_select(
             args
         )
         return
