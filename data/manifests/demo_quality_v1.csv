@@ -46,5 +46,5 @@ demo_quality_v1,impeller,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,FULL_HE
 demo_quality_v1,mechanical05,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,0,NON_FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
 demo_quality_v1,des6,train,COLLECTED,VERIFIED,26,NON_FULL_HEX,COMPLETE,0,NON_FULL_HEX,MATCH,RL_AUXILIARY,VERIFIED_ORIGINAL_TRAJECTORY_ENDS_NON_FULL_HEX,0,0,1,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/des6/des6_original_demo_v1.npz,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/des6/des6_original_demo_v1.json
 demo_quality_v1,mechanical06,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,NON_FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
-demo_quality_v1,motor_tail,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
+demo_quality_v1,motor_tail,train,COLLECTED,VERIFIED,54,FULL_HEX,COMPLETE,1,FULL_HEX,MATCH,BC_CORE,VERIFIED_ORIGINAL_TRAJECTORY_ENDS_FULL_HEX,1,1,0,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/motor_tail/motor_tail_original_demo_v1.npz,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/motor_tail/motor_tail_original_demo_v1.json
 demo_quality_v1,camille_hand,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
