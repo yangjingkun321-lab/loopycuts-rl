@@ -225,6 +225,36 @@ PROJECT_BLIND_TEST_ALLOWED_DURING_TRAINING = False
 
 
 # ================================================================
+# PROJECT-SPECIFIED / FRAMEWORK-DEFAULT-ALIGNED PARAMETERS
+#
+# These are NOT paper-specified values.
+#
+# They deliberately follow the defaults of the frozen experimental
+# framework environment:
+#
+#     Tianshou 2.0.1
+#
+# Verified locally before formal training.
+# ================================================================
+
+PROJECT_INITIAL_ALPHA = 1.0
+
+PROJECT_INITIAL_ALPHA_BASIS = (
+    "TIANSHOU_2_0_1_AUTO_ALPHA_DEFAULT_LOG_ALPHA_0"
+)
+
+PROJECT_STAGE2_COLLECTION_UPDATE_RATIO = 1.0
+
+PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_SEMANTICS = (
+    "GRADIENT_UPDATES_PER_COLLECTED_ENVIRONMENT_TRANSITION"
+)
+
+PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_BASIS = (
+    "TIANSHOU_2_0_1_OFFPOLICY_DEFAULT"
+)
+
+
+# ================================================================
 # UNRESOLVED FORMAL-TRAINING ITEMS
 #
 # None of these may be assigned an arbitrary smoke-test value.
@@ -238,17 +268,11 @@ UNRESOLVED_STAGE1_STOPPING_RULE = None
 
 UNRESOLVED_STAGE2_TOTAL_ENVIRONMENT_STEPS = None
 
-UNRESOLVED_STAGE2_COLLECTION_UPDATE_RATIO = None
-
-UNRESOLVED_INITIAL_ALPHA = None
-
 
 FORMAL_TRAINING_BLOCKERS = (
     "bc_weight",
     "stage1_gradient_steps_or_stopping_rule",
     "stage2_total_environment_steps",
-    "stage2_collection_update_ratio",
-    "initial_alpha",
 )
 
 

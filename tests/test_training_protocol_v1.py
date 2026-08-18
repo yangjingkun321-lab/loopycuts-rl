@@ -40,13 +40,16 @@ from training.protocol_v1 import (
     PROJECT_MASKED_EPSILON_GREEDY_VERSION,
     PROJECT_MAX_ACTIONS,
     PROJECT_NETWORK_REINITIALIZATION,
+    PROJECT_INITIAL_ALPHA,
+    PROJECT_INITIAL_ALPHA_BASIS,
     PROJECT_STAGE2_BC_ENABLED,
     PROJECT_STAGE2_EQUAL_REPLAY,
+    PROJECT_STAGE2_COLLECTION_UPDATE_RATIO,
+    PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_SEMANTICS,
+    PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_BASIS,
     UNRESOLVED_BC_WEIGHT,
-    UNRESOLVED_INITIAL_ALPHA,
     UNRESOLVED_STAGE1_GRADIENT_STEPS,
     UNRESOLVED_STAGE1_STOPPING_RULE,
-    UNRESOLVED_STAGE2_COLLECTION_UPDATE_RATIO,
     UNRESOLVED_STAGE2_TOTAL_ENVIRONMENT_STEPS,
     assert_formal_training_ready,
     formal_training_ready,
@@ -292,6 +295,51 @@ def main():
 
 
     # ------------------------------------------------------------
+    # Project-specified / framework-default-aligned facts.
+    # ------------------------------------------------------------
+
+    assert math.isclose(
+        PROJECT_INITIAL_ALPHA,
+        1.0,
+    )
+
+    assert (
+        PROJECT_INITIAL_ALPHA_BASIS
+        ==
+        "TIANSHOU_2_0_1_AUTO_ALPHA_DEFAULT_LOG_ALPHA_0"
+    )
+
+    assert math.isclose(
+        PROJECT_STAGE2_COLLECTION_UPDATE_RATIO,
+        1.0,
+    )
+
+    assert (
+        PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_SEMANTICS
+        ==
+        "GRADIENT_UPDATES_PER_COLLECTED_ENVIRONMENT_TRANSITION"
+    )
+
+    assert (
+        PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_BASIS
+        ==
+        "TIANSHOU_2_0_1_OFFPOLICY_DEFAULT"
+    )
+
+    assert (
+        "initial_alpha"
+        not in
+        FORMAL_TRAINING_BLOCKERS
+    )
+
+    assert (
+        "stage2_collection_update_ratio"
+        not in
+        FORMAL_TRAINING_BLOCKERS
+    )
+
+
+    # ------------------------------------------------------------
     # Critical unresolved values must remain explicit.
     # ------------------------------------------------------------
 
@@ -312,19 +360,13 @@ def main():
         is None
     )
 
-    assert (
-        UNRESOLVED_STAGE2_COLLECTION_UPDATE_RATIO
-        is None
-    )
-
-    assert (
-        UNRESOLVED_INITIAL_ALPHA
-        is None
-    )
-
-    assert len(
+    assert set(
         FORMAL_TRAINING_BLOCKERS
-    ) > 0
+    ) == {
+        "bc_weight",
+        "stage1_gradient_steps_or_stopping_rule",
+        "stage2_total_environment_steps",
+    }
 
     assert (
         formal_training_ready()
