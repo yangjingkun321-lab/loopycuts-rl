@@ -148,8 +148,8 @@ def main():
         ]
         ==
         (
-            "832d16c3ed7929b82a8c42b1a842c120"
-            "1b63a3898f438274a9353140c68b0bd5"
+            "b97d70f52ebbc0bf861042e6adfe29b4"
+            "305952f459a59cfffa524d154f82d01d"
         )
     )
 
@@ -173,6 +173,97 @@ def main():
             "e4de643107462712e63b55ea5839fa92"
             "293d8256b255d7f5fb03ec9619e3c383"
         )
+    )
+
+
+    # ============================================================
+    # Frozen CPU numerical runtime.
+    # ============================================================
+
+    assert (
+        observed[
+            "torch_num_threads"
+        ]
+        ==
+        8
+    )
+
+    assert (
+        observed[
+            "torch_num_interop_threads"
+        ]
+        ==
+        8
+    )
+
+    assert (
+        observed[
+            "torch_deterministic_algorithms"
+        ]
+        is False
+    )
+
+    assert (
+        observed[
+            "cpu_repeatability_audit_sha256"
+        ]
+        ==
+        (
+            "a3c367167cb8f1f710c4eaea5edf23f"
+            "dee50d401e5ca083df5fc82f4cf7f83fe"
+        )
+    )
+
+
+    # ============================================================
+    # Wrong frozen thread policy must fail.
+    # ============================================================
+
+    mutated = copy.deepcopy(
+        payload
+    )
+
+    mutated[
+        "runtime"
+    ][
+        "thread_policy"
+    ][
+        "torch_num_threads"
+    ] = 1
+
+    expect_rejection(
+        payload=
+            mutated,
+
+        label=
+            "torch thread-policy mismatch",
+    )
+
+
+    # ============================================================
+    # Wrong repeatability-audit fingerprint must fail.
+    # ============================================================
+
+    mutated = copy.deepcopy(
+        payload
+    )
+
+    mutated[
+        "runtime"
+    ][
+        "cpu_repeatability_audit"
+    ][
+        "artifact_sha256"
+    ] = (
+        "3" * 64
+    )
+
+    expect_rejection(
+        payload=
+            mutated,
+
+        label=
+            "CPU repeatability audit SHA256 mismatch",
     )
 
 

@@ -292,10 +292,7 @@ def assert_frozen_input_provenance(
 
 
     # ============================================================
-    # Runtime versions.
-    #
-    # Thread policy is deliberately NOT frozen here.
-    # That is Phase 17.5I.
+    # Runtime versions and frozen CPU numerical policy.
     # ============================================================
 
     runtime = payload[
@@ -329,6 +326,236 @@ def assert_frozen_input_provenance(
                 f"expected={expected!r}, "
                 f"observed={observed!r}"
             )
+
+
+    # ============================================================
+    # Frozen CPU numerical runtime.
+    # ============================================================
+
+    thread_policy = runtime.get(
+        "thread_policy"
+    )
+
+    if not isinstance(
+        thread_policy,
+        dict,
+    ):
+        raise InputProvenanceError(
+            "Frozen thread policy is missing"
+        )
+
+    if (
+        thread_policy.get(
+            "device"
+        )
+        !=
+        "cpu"
+    ):
+        raise InputProvenanceError(
+            "Frozen calibration device must be cpu"
+        )
+
+    observed_num_threads = (
+        torch.get_num_threads()
+    )
+
+    observed_num_interop_threads = (
+        torch.get_num_interop_threads()
+    )
+
+    observed_deterministic = (
+        torch.are_deterministic_algorithms_enabled()
+    )
+
+    if (
+        observed_num_threads
+        !=
+        int(
+            thread_policy[
+                "torch_num_threads"
+            ]
+        )
+    ):
+        raise InputProvenanceError(
+            "torch intra-op thread-count mismatch"
+        )
+
+    if (
+        observed_num_interop_threads
+        !=
+        int(
+            thread_policy[
+                "torch_num_interop_threads"
+            ]
+        )
+    ):
+        raise InputProvenanceError(
+            "torch inter-op thread-count mismatch"
+        )
+
+    if (
+        observed_deterministic
+        is not
+        bool(
+            thread_policy[
+                "torch_deterministic_algorithms"
+            ]
+        )
+    ):
+        raise InputProvenanceError(
+            "torch deterministic-algorithm policy mismatch"
+        )
+
+
+    # ============================================================
+    # Repeatability audit artifact itself is also pinned.
+    # ============================================================
+
+    repeatability = runtime.get(
+        "cpu_repeatability_audit"
+    )
+
+    if not isinstance(
+        repeatability,
+        dict,
+    ):
+        raise InputProvenanceError(
+            "CPU repeatability audit metadata is missing"
+        )
+
+    repeatability_path = (
+        _resolve_project_path(
+            repeatability[
+                "artifact_path"
+            ]
+        )
+    )
+
+    observed_repeatability_sha = (
+        sha256_file(
+            repeatability_path
+        )
+    )
+
+    if (
+        observed_repeatability_sha
+        !=
+        repeatability[
+            "artifact_sha256"
+        ]
+    ):
+        raise InputProvenanceError(
+            "CPU repeatability audit SHA256 mismatch"
+        )
+
+    repeatability_payload = json.loads(
+        repeatability_path.read_text(
+            encoding="utf-8"
+        )
+    )
+
+    if (
+        repeatability_payload.get(
+            "audit_version"
+        )
+        !=
+        repeatability[
+            "audit_version"
+        ]
+    ):
+        raise InputProvenanceError(
+            "CPU repeatability audit version mismatch"
+        )
+
+    if (
+        int(
+            repeatability_payload[
+                "seed"
+            ]
+        )
+        !=
+        int(
+            repeatability[
+                "seed"
+            ]
+        )
+    ):
+        raise InputProvenanceError(
+            "CPU repeatability audit seed mismatch"
+        )
+
+    if (
+        float(
+            repeatability_payload[
+                "bc_weight"
+            ]
+        )
+        !=
+        float(
+            repeatability[
+                "bc_weight"
+            ]
+        )
+    ):
+        raise InputProvenanceError(
+            "CPU repeatability audit lambda mismatch"
+        )
+
+    if (
+        int(
+            repeatability_payload[
+                "updates"
+            ]
+        )
+        !=
+        int(
+            repeatability[
+                "updates"
+            ]
+        )
+    ):
+        raise InputProvenanceError(
+            "CPU repeatability audit update-count mismatch"
+        )
+
+    if (
+        int(
+            repeatability_payload[
+                "torch_num_threads"
+            ]
+        )
+        !=
+        observed_num_threads
+    ):
+        raise InputProvenanceError(
+            "CPU repeatability audit intra-op mismatch"
+        )
+
+    if (
+        int(
+            repeatability_payload[
+                "torch_num_interop_threads"
+            ]
+        )
+        !=
+        observed_num_interop_threads
+    ):
+        raise InputProvenanceError(
+            "CPU repeatability audit inter-op mismatch"
+        )
+
+    if (
+        bool(
+            repeatability_payload[
+                "torch_deterministic_algorithms"
+            ]
+        )
+        is not
+        observed_deterministic
+    ):
+        raise InputProvenanceError(
+            "CPU repeatability audit deterministic-policy mismatch"
+        )
 
 
     # ============================================================
@@ -811,4 +1038,16 @@ def assert_frozen_input_provenance(
             demo_observed[
                 "aggregate_sha256"
             ],
+
+        "torch_num_threads":
+            observed_num_threads,
+
+        "torch_num_interop_threads":
+            observed_num_interop_threads,
+
+        "torch_deterministic_algorithms":
+            observed_deterministic,
+
+        "cpu_repeatability_audit_sha256":
+            observed_repeatability_sha,
     }

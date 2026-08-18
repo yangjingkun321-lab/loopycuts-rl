@@ -139,6 +139,10 @@ from training.protocol_v1 import (
     PROJECT_BC_WEIGHT_CALIBRATION_EVAL_EPSILON,
     PROJECT_BC_WEIGHT_CALIBRATION_DEVICE,
 
+    PROJECT_BC_WEIGHT_CALIBRATION_TORCH_NUM_THREADS,
+    PROJECT_BC_WEIGHT_CALIBRATION_TORCH_NUM_INTEROP_THREADS,
+    PROJECT_BC_WEIGHT_CALIBRATION_TORCH_DETERMINISTIC_ALGORITHMS,
+
     UNRESOLVED_BC_WEIGHT,
     FORMAL_TRAINING_BLOCKERS,
     formal_training_ready,
@@ -431,6 +435,23 @@ def assert_protocol():
         "cpu"
     )
 
+    assert (
+        PROJECT_BC_WEIGHT_CALIBRATION_TORCH_NUM_THREADS
+        ==
+        8
+    )
+
+    assert (
+        PROJECT_BC_WEIGHT_CALIBRATION_TORCH_NUM_INTEROP_THREADS
+        ==
+        8
+    )
+
+    assert (
+        PROJECT_BC_WEIGHT_CALIBRATION_TORCH_DETERMINISTIC_ALGORITHMS
+        is False
+    )
+
     assert PAPER_BATCH_SIZE == 64
 
     assert math.isclose(
@@ -455,6 +476,93 @@ def assert_protocol():
     )
 
     assert formal_training_ready() is False
+
+
+def configure_calibration_cpu_runtime():
+    if (
+        PROJECT_BC_WEIGHT_CALIBRATION_DEVICE
+        !=
+        "cpu"
+    ):
+        raise CalibrationRunnerError(
+            "BC calibration numerical runtime must be CPU"
+        )
+
+    expected_threads = int(
+        PROJECT_BC_WEIGHT_CALIBRATION_TORCH_NUM_THREADS
+    )
+
+    expected_interop = int(
+        PROJECT_BC_WEIGHT_CALIBRATION_TORCH_NUM_INTEROP_THREADS
+    )
+
+    expected_deterministic = bool(
+        PROJECT_BC_WEIGHT_CALIBRATION_TORCH_DETERMINISTIC_ALGORITHMS
+    )
+
+    if (
+        torch.get_num_threads()
+        !=
+        expected_threads
+    ):
+        torch.set_num_threads(
+            expected_threads
+        )
+
+    if (
+        torch.get_num_interop_threads()
+        !=
+        expected_interop
+    ):
+        try:
+            torch.set_num_interop_threads(
+                expected_interop
+            )
+
+        except RuntimeError as exc:
+            raise CalibrationRunnerError(
+                "Cannot apply frozen torch inter-op thread policy"
+            ) from exc
+
+    torch.use_deterministic_algorithms(
+        expected_deterministic
+    )
+
+    observed = {
+        "device":
+            PROJECT_BC_WEIGHT_CALIBRATION_DEVICE,
+
+        "torch_num_threads":
+            torch.get_num_threads(),
+
+        "torch_num_interop_threads":
+            torch.get_num_interop_threads(),
+
+        "torch_deterministic_algorithms":
+            torch.are_deterministic_algorithms_enabled(),
+    }
+
+    expected = {
+        "device":
+            "cpu",
+
+        "torch_num_threads":
+            expected_threads,
+
+        "torch_num_interop_threads":
+            expected_interop,
+
+        "torch_deterministic_algorithms":
+            expected_deterministic,
+    }
+
+    if observed != expected:
+        raise CalibrationRunnerError(
+            "Frozen calibration CPU runtime could not be established: "
+            f"expected={expected}, observed={observed}"
+        )
+
+    return observed
 
 
 def set_run_seed(
@@ -1621,6 +1729,10 @@ def run_formal_pair(
     assert_clean_repository()
     assert_protocol()
 
+    cpu_runtime = (
+        configure_calibration_cpu_runtime()
+    )
+
     bc_weight = (
         canonical_formal_candidate(
             args.bc_weight
@@ -2026,6 +2138,15 @@ def run_formal_pair(
 
         "torch_num_threads":
             torch.get_num_threads(),
+
+        "torch_num_interop_threads":
+            torch.get_num_interop_threads(),
+
+        "torch_deterministic_algorithms":
+            torch.are_deterministic_algorithms_enabled(),
+
+        "cpu_runtime":
+            cpu_runtime,
 
         "bc_weight":
             bc_weight,
@@ -2609,6 +2730,10 @@ def run_select(
     assert_clean_repository()
     assert_protocol()
 
+    cpu_runtime = (
+        configure_calibration_cpu_runtime()
+    )
+
     selection_output = Path(
         args.selection_output
     )
@@ -2694,6 +2819,9 @@ def run_select(
 
         "input_provenance":
             current_input_provenance,
+
+        "cpu_runtime":
+            cpu_runtime,
 
         "pair_artifact_count":
             len(

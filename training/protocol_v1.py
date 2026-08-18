@@ -526,6 +526,54 @@ PROJECT_BC_WEIGHT_CALIBRATION_DEVICE = (
     "cpu"
 )
 
+
+# Frozen CPU numerical runtime for BC-weight calibration.
+#
+# This policy was audited on 2026-08-18 using two completely
+# independent Python processes with:
+#
+#     lambda_BC = 2.0  (non-candidate)
+#     seed      = 42
+#     D_demo    = 30 episodes / 605 transitions
+#     updates   = 20
+#
+# Both processes produced byte-identical audit JSON, identical
+# ReplayBuffer minibatches, update statistics, RNG states, and
+# final model state.
+#
+# IMPORTANT:
+# torch deterministic-algorithm enforcement remains False because
+# that is the exact runtime configuration that was empirically
+# audited.  Enabling it here would introduce a new unaudited runtime.
+PROJECT_BC_WEIGHT_CALIBRATION_TORCH_NUM_THREADS = 8
+
+PROJECT_BC_WEIGHT_CALIBRATION_TORCH_NUM_INTEROP_THREADS = 8
+
+PROJECT_BC_WEIGHT_CALIBRATION_TORCH_DETERMINISTIC_ALGORITHMS = False
+
+PROJECT_BC_WEIGHT_CALIBRATION_CPU_REPEATABILITY_AUDIT_VERSION = (
+    "stage1_cpu_repeatability_probe_v1"
+)
+
+PROJECT_BC_WEIGHT_CALIBRATION_CPU_REPEATABILITY_AUDIT_SEED = 42
+
+PROJECT_BC_WEIGHT_CALIBRATION_CPU_REPEATABILITY_AUDIT_BC_WEIGHT = 2.0
+
+PROJECT_BC_WEIGHT_CALIBRATION_CPU_REPEATABILITY_AUDIT_UPDATES = 20
+
+PROJECT_BC_WEIGHT_CALIBRATION_CPU_REPEATABILITY_AUDIT_BASE_COMMIT = (
+    "77f393af7ae2a0a07b86b86c05c2e03f51b3210b"
+)
+
+PROJECT_BC_WEIGHT_CALIBRATION_CPU_REPEATABILITY_AUDIT_SHA256 = (
+    "a3c367167cb8f1f710c4eaea5edf23f"
+    "dee50d401e5ca083df5fc82f4cf7f83fe"
+)
+
+PROJECT_BC_WEIGHT_CALIBRATION_CPU_REPEATABILITY_RESULT = (
+    "BITWISE_IDENTICAL_ACROSS_TWO_INDEPENDENT_PROCESSES"
+)
+
 PROJECT_BC_WEIGHT_CALIBRATION_DEV_ALLOWED = False
 
 PROJECT_BC_WEIGHT_CALIBRATION_BLIND_ALLOWED = False
