@@ -168,14 +168,43 @@ PROJECT_MASKED_EPSILON_GREEDY_VERSION = (
     "loopycuts_masked_epsilon_greedy_v1"
 )
 
-PROJECT_MAIN_DEMO_EPISODES = 3
+# Final formal D_demo snapshot frozen from
+# Demonstration Quality V1.
+PROJECT_MAIN_DEMO_EPISODES = 30
 
-PROJECT_MAIN_DEMO_TRANSITIONS = 29
+PROJECT_MAIN_DEMO_TRANSITIONS = 605
 
 PROJECT_MAIN_DEMO_MODELS = (
     "mech10",
     "Plate3",
+    "dog",
+    "prism",
+    "wave",
+    "cat",
+    "kong",
+    "bolt",
+    "dancer",
+    "hand",
+    "kitten",
+    "trebol",
+    "wedge",
+    "Plate2",
+    "cube_minus_sphere",
+    "bunny",
+    "Plate4",
+    "tris_closed",
+    "cup",
+    "tris_open",
+    "ujoint",
+    "metatron",
+    "joint",
+    "lever_arm",
+    "mechanical02",
+    "gear",
     "bearing_plate",
+    "hinge",
+    "impeller",
+    "motor_tail",
 )
 
 PROJECT_STAGE1_REPLAY = (

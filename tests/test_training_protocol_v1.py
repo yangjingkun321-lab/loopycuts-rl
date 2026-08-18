@@ -226,13 +226,13 @@ def main():
     assert (
         PROJECT_MAIN_DEMO_EPISODES
         ==
-        3
+        30
     )
 
     assert (
         PROJECT_MAIN_DEMO_TRANSITIONS
         ==
-        29
+        605
     )
 
     assert set(
@@ -240,7 +240,34 @@ def main():
     ) == {
         "mech10",
         "Plate3",
+        "dog",
+        "prism",
+        "wave",
+        "cat",
+        "kong",
+        "bolt",
+        "dancer",
+        "hand",
+        "kitten",
+        "trebol",
+        "wedge",
+        "Plate2",
+        "cube_minus_sphere",
+        "bunny",
+        "Plate4",
+        "tris_closed",
+        "cup",
+        "tris_open",
+        "ujoint",
+        "metatron",
+        "joint",
+        "lever_arm",
+        "mechanical02",
+        "gear",
         "bearing_plate",
+        "hinge",
+        "impeller",
+        "motor_tail",
     }
 
     assert (
