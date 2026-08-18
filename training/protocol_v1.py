@@ -275,6 +275,52 @@ PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS_BASIS = (
 )
 
 
+# Stage-I formal optimization budget.
+#
+# IMPORTANT:
+#   The paper does NOT specify 782 Stage-I gradient updates.
+#
+# The paper specifies D_demo replay capacity = 50,000.
+# This project deliberately uses one paper D_demo-capacity worth of
+# cumulative sampled demonstration transitions as the fixed Stage-I
+# optimization exposure.
+#
+# ReplayBuffer sampling under the frozen Tianshou 2.0.1 environment
+# is random with replacement, so "epoch" is intentionally not used
+# as the formal Stage-I budget unit.
+PROJECT_STAGE1_TARGET_SAMPLED_DEMO_TRANSITIONS = (
+    PAPER_DEMO_REPLAY_CAPACITY
+)
+
+PROJECT_STAGE1_GRADIENT_STEPS = math.ceil(
+    PROJECT_STAGE1_TARGET_SAMPLED_DEMO_TRANSITIONS
+    /
+    PAPER_BATCH_SIZE
+)
+
+PROJECT_STAGE1_ACTUAL_SAMPLED_DEMO_TRANSITIONS = (
+    PROJECT_STAGE1_GRADIENT_STEPS
+    *
+    PAPER_BATCH_SIZE
+)
+
+PROJECT_STAGE1_SAMPLING_SEMANTICS = (
+    "TIANSHOU_2_0_1_RANDOM_WITH_REPLACEMENT"
+)
+
+PROJECT_STAGE1_GRADIENT_STEPS_BASIS = (
+    "PROJECT_SPECIFIED_ONE_PAPER_D_DEMO_REPLAY_CAPACITY"
+)
+
+PROJECT_STAGE1_STOPPING_RULE = (
+    "FIXED_GRADIENT_BUDGET_NO_DATA_DEPENDENT_EARLY_STOP"
+)
+
+PROJECT_STAGE1_STOPPING_RULE_SEMANTICS = (
+    "STOP_AFTER_EXACT_PROJECT_STAGE1_GRADIENT_STEPS"
+)
+
+
 # ================================================================
 # UNRESOLVED FORMAL-TRAINING ITEMS
 #
@@ -283,13 +329,8 @@ PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS_BASIS = (
 
 UNRESOLVED_BC_WEIGHT = None
 
-UNRESOLVED_STAGE1_GRADIENT_STEPS = None
-
-UNRESOLVED_STAGE1_STOPPING_RULE = None
-
 FORMAL_TRAINING_BLOCKERS = (
     "bc_weight",
-    "stage1_gradient_steps_or_stopping_rule",
 )
 
 

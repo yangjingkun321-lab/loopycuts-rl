@@ -42,6 +42,13 @@ from training.protocol_v1 import (
     PROJECT_NETWORK_REINITIALIZATION,
     PROJECT_INITIAL_ALPHA,
     PROJECT_INITIAL_ALPHA_BASIS,
+    PROJECT_STAGE1_TARGET_SAMPLED_DEMO_TRANSITIONS,
+    PROJECT_STAGE1_GRADIENT_STEPS,
+    PROJECT_STAGE1_ACTUAL_SAMPLED_DEMO_TRANSITIONS,
+    PROJECT_STAGE1_SAMPLING_SEMANTICS,
+    PROJECT_STAGE1_GRADIENT_STEPS_BASIS,
+    PROJECT_STAGE1_STOPPING_RULE,
+    PROJECT_STAGE1_STOPPING_RULE_SEMANTICS,
     PROJECT_STAGE2_BC_ENABLED,
     PROJECT_STAGE2_EQUAL_REPLAY,
     PROJECT_STAGE2_COLLECTION_UPDATE_RATIO,
@@ -51,8 +58,6 @@ from training.protocol_v1 import (
     PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS_SEMANTICS,
     PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS_BASIS,
     UNRESOLVED_BC_WEIGHT,
-    UNRESOLVED_STAGE1_GRADIENT_STEPS,
-    UNRESOLVED_STAGE1_STOPPING_RULE,
     assert_formal_training_ready,
     formal_training_ready,
     paper_entropy_target,
@@ -372,26 +377,82 @@ def main():
 
 
     # ------------------------------------------------------------
+    # Project-specified Stage-I fixed optimization budget.
+    # ------------------------------------------------------------
+
+    assert (
+        PROJECT_STAGE1_TARGET_SAMPLED_DEMO_TRANSITIONS
+        ==
+        50_000
+    )
+
+    assert (
+        PROJECT_STAGE1_TARGET_SAMPLED_DEMO_TRANSITIONS
+        ==
+        PAPER_DEMO_REPLAY_CAPACITY
+    )
+
+    assert (
+        PROJECT_STAGE1_GRADIENT_STEPS
+        ==
+        782
+    )
+
+    assert (
+        PROJECT_STAGE1_ACTUAL_SAMPLED_DEMO_TRANSITIONS
+        ==
+        50_048
+    )
+
+    assert (
+        PROJECT_STAGE1_ACTUAL_SAMPLED_DEMO_TRANSITIONS
+        ==
+        PROJECT_STAGE1_GRADIENT_STEPS
+        *
+        PAPER_BATCH_SIZE
+    )
+
+    assert (
+        PROJECT_STAGE1_SAMPLING_SEMANTICS
+        ==
+        "TIANSHOU_2_0_1_RANDOM_WITH_REPLACEMENT"
+    )
+
+    assert (
+        PROJECT_STAGE1_GRADIENT_STEPS_BASIS
+        ==
+        "PROJECT_SPECIFIED_ONE_PAPER_D_DEMO_REPLAY_CAPACITY"
+    )
+
+    assert (
+        PROJECT_STAGE1_STOPPING_RULE
+        ==
+        "FIXED_GRADIENT_BUDGET_NO_DATA_DEPENDENT_EARLY_STOP"
+    )
+
+    assert (
+        PROJECT_STAGE1_STOPPING_RULE_SEMANTICS
+        ==
+        "STOP_AFTER_EXACT_PROJECT_STAGE1_GRADIENT_STEPS"
+    )
+
+    assert (
+        "stage1_gradient_steps_or_stopping_rule"
+        not in
+        FORMAL_TRAINING_BLOCKERS
+    )
+
+
+    # ------------------------------------------------------------
     # Critical unresolved values must remain explicit.
     # ------------------------------------------------------------
 
     assert UNRESOLVED_BC_WEIGHT is None
 
-    assert (
-        UNRESOLVED_STAGE1_GRADIENT_STEPS
-        is None
-    )
-
-    assert (
-        UNRESOLVED_STAGE1_STOPPING_RULE
-        is None
-    )
-
     assert set(
         FORMAL_TRAINING_BLOCKERS
     ) == {
         "bc_weight",
-        "stage1_gradient_steps_or_stopping_rule",
     }
 
     assert (
