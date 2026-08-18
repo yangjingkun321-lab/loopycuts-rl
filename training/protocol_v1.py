@@ -322,6 +322,76 @@ PROJECT_STAGE1_STOPPING_RULE_SEMANTICS = (
 
 
 # ================================================================
+# BC-WEIGHT CALIBRATION PROTOCOL
+#
+# IMPORTANT:
+#   The paper does not specify lambda_BC.
+#
+# The project therefore freezes the complete calibration procedure
+# BEFORE any lambda candidate is evaluated.
+#
+# Dev and blind splits are forbidden for this calibration.
+# ================================================================
+
+PROJECT_BC_WEIGHT_CALIBRATION_VERSION = (
+    "bc_weight_calibration_v1"
+)
+
+PROJECT_BC_WEIGHT_CALIBRATION_CANDIDATES = (
+    0.1,
+    0.3,
+    0.5,
+    1.0,
+    3.0,
+)
+
+PROJECT_BC_WEIGHT_CALIBRATION_SEEDS = (
+    42,
+    43,
+    44,
+)
+
+PROJECT_BC_WEIGHT_CALIBRATION_SPLIT = (
+    "engineering_calibration"
+)
+
+PROJECT_BC_WEIGHT_CALIBRATION_MODELS = (
+    "bimba",
+    "deckel",
+    "BracketInches",
+    "eraser_ball",
+    "cylinder_plate",
+)
+
+PROJECT_BC_WEIGHT_CALIBRATION_STAGE1_GRADIENT_STEPS = (
+    PROJECT_STAGE1_GRADIENT_STEPS
+)
+
+PROJECT_BC_WEIGHT_CALIBRATION_STAGE2_ENABLED = False
+
+PROJECT_BC_WEIGHT_CALIBRATION_EVAL_DETERMINISTIC = True
+
+PROJECT_BC_WEIGHT_CALIBRATION_EVAL_EPSILON = 0.0
+
+PROJECT_BC_WEIGHT_CALIBRATION_DEV_ALLOWED = False
+
+PROJECT_BC_WEIGHT_CALIBRATION_BLIND_ALLOWED = False
+
+PROJECT_BC_WEIGHT_CALIBRATION_NONHEX_METRIC = (
+    "SUM_TOTAL_MINUS_HEX_DIV_SUM_TOTAL_FOR_COMPLETED_FINALIZATIONS"
+)
+
+PROJECT_BC_WEIGHT_CALIBRATION_SELECTION_RULE = (
+    "LEXICOGRAPHIC:"
+    "MAX_FULL_HEX,"
+    "MIN_FINALIZATION_CRASH,"
+    "MIN_AGGREGATE_NONHEX_FRACTION,"
+    "MAX_MEAN_EPISODE_RETURN,"
+    "MIN_BC_WEIGHT"
+)
+
+
+# ================================================================
 # UNRESOLVED FORMAL-TRAINING ITEMS
 #
 # None of these may be assigned an arbitrary smoke-test value.

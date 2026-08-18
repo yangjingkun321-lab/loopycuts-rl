@@ -49,6 +49,19 @@ from training.protocol_v1 import (
     PROJECT_STAGE1_GRADIENT_STEPS_BASIS,
     PROJECT_STAGE1_STOPPING_RULE,
     PROJECT_STAGE1_STOPPING_RULE_SEMANTICS,
+    PROJECT_BC_WEIGHT_CALIBRATION_VERSION,
+    PROJECT_BC_WEIGHT_CALIBRATION_CANDIDATES,
+    PROJECT_BC_WEIGHT_CALIBRATION_SEEDS,
+    PROJECT_BC_WEIGHT_CALIBRATION_SPLIT,
+    PROJECT_BC_WEIGHT_CALIBRATION_MODELS,
+    PROJECT_BC_WEIGHT_CALIBRATION_STAGE1_GRADIENT_STEPS,
+    PROJECT_BC_WEIGHT_CALIBRATION_STAGE2_ENABLED,
+    PROJECT_BC_WEIGHT_CALIBRATION_EVAL_DETERMINISTIC,
+    PROJECT_BC_WEIGHT_CALIBRATION_EVAL_EPSILON,
+    PROJECT_BC_WEIGHT_CALIBRATION_DEV_ALLOWED,
+    PROJECT_BC_WEIGHT_CALIBRATION_BLIND_ALLOWED,
+    PROJECT_BC_WEIGHT_CALIBRATION_NONHEX_METRIC,
+    PROJECT_BC_WEIGHT_CALIBRATION_SELECTION_RULE,
     PROJECT_STAGE2_BC_ENABLED,
     PROJECT_STAGE2_EQUAL_REPLAY,
     PROJECT_STAGE2_COLLECTION_UPDATE_RATIO,
@@ -440,6 +453,109 @@ def main():
         "stage1_gradient_steps_or_stopping_rule"
         not in
         FORMAL_TRAINING_BLOCKERS
+    )
+
+
+    # ------------------------------------------------------------
+    # Frozen BC-weight calibration protocol.
+    # ------------------------------------------------------------
+
+    assert (
+        PROJECT_BC_WEIGHT_CALIBRATION_VERSION
+        ==
+        "bc_weight_calibration_v1"
+    )
+
+    assert (
+        PROJECT_BC_WEIGHT_CALIBRATION_CANDIDATES
+        ==
+        (
+            0.1,
+            0.3,
+            0.5,
+            1.0,
+            3.0,
+        )
+    )
+
+    assert (
+        PROJECT_BC_WEIGHT_CALIBRATION_SEEDS
+        ==
+        (
+            42,
+            43,
+            44,
+        )
+    )
+
+    assert (
+        PROJECT_BC_WEIGHT_CALIBRATION_SPLIT
+        ==
+        "engineering_calibration"
+    )
+
+    assert (
+        PROJECT_BC_WEIGHT_CALIBRATION_MODELS
+        ==
+        (
+            "bimba",
+            "deckel",
+            "BracketInches",
+            "eraser_ball",
+            "cylinder_plate",
+        )
+    )
+
+    assert (
+        PROJECT_BC_WEIGHT_CALIBRATION_STAGE1_GRADIENT_STEPS
+        ==
+        PROJECT_STAGE1_GRADIENT_STEPS
+        ==
+        782
+    )
+
+    assert (
+        PROJECT_BC_WEIGHT_CALIBRATION_STAGE2_ENABLED
+        is False
+    )
+
+    assert (
+        PROJECT_BC_WEIGHT_CALIBRATION_EVAL_DETERMINISTIC
+        is True
+    )
+
+    assert math.isclose(
+        PROJECT_BC_WEIGHT_CALIBRATION_EVAL_EPSILON,
+        0.0,
+    )
+
+    assert (
+        PROJECT_BC_WEIGHT_CALIBRATION_DEV_ALLOWED
+        is False
+    )
+
+    assert (
+        PROJECT_BC_WEIGHT_CALIBRATION_BLIND_ALLOWED
+        is False
+    )
+
+    assert (
+        PROJECT_BC_WEIGHT_CALIBRATION_NONHEX_METRIC
+        ==
+        "SUM_TOTAL_MINUS_HEX_DIV_SUM_TOTAL_FOR_COMPLETED_FINALIZATIONS"
+    )
+
+    assert (
+        PROJECT_BC_WEIGHT_CALIBRATION_SELECTION_RULE
+        ==
+        (
+            "LEXICOGRAPHIC:"
+            "MAX_FULL_HEX,"
+            "MIN_FINALIZATION_CRASH,"
+            "MIN_AGGREGATE_NONHEX_FRACTION,"
+            "MAX_MEAN_EPISODE_RETURN,"
+            "MIN_BC_WEIGHT"
+        )
     )
 
 
