@@ -254,6 +254,27 @@ PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_BASIS = (
 )
 
 
+# Stage-II formal online-collection budget.
+#
+# IMPORTANT:
+#   25,000 is NOT claimed to be a paper-specified training budget.
+#
+# The paper specifies D_expo replay capacity = 25,000.
+# This project deliberately uses one full D_expo-capacity worth of
+# newly collected environment transitions as the fixed Stage-II
+# budget. Therefore formal Stage-II collection does not require
+# replay overwrite before the budget is exhausted.
+PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS = 25_000
+
+PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS_SEMANTICS = (
+    "EXACT_NEWLY_COLLECTED_ENVIRONMENT_TRANSITIONS"
+)
+
+PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS_BASIS = (
+    "PROJECT_SPECIFIED_ONE_PAPER_D_EXPO_REPLAY_CAPACITY"
+)
+
+
 # ================================================================
 # UNRESOLVED FORMAL-TRAINING ITEMS
 #
@@ -266,13 +287,9 @@ UNRESOLVED_STAGE1_GRADIENT_STEPS = None
 
 UNRESOLVED_STAGE1_STOPPING_RULE = None
 
-UNRESOLVED_STAGE2_TOTAL_ENVIRONMENT_STEPS = None
-
-
 FORMAL_TRAINING_BLOCKERS = (
     "bc_weight",
     "stage1_gradient_steps_or_stopping_rule",
-    "stage2_total_environment_steps",
 )
 
 

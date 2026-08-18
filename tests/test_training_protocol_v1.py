@@ -47,10 +47,12 @@ from training.protocol_v1 import (
     PROJECT_STAGE2_COLLECTION_UPDATE_RATIO,
     PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_SEMANTICS,
     PROJECT_STAGE2_COLLECTION_UPDATE_RATIO_BASIS,
+    PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS,
+    PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS_SEMANTICS,
+    PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS_BASIS,
     UNRESOLVED_BC_WEIGHT,
     UNRESOLVED_STAGE1_GRADIENT_STEPS,
     UNRESOLVED_STAGE1_STOPPING_RULE,
-    UNRESOLVED_STAGE2_TOTAL_ENVIRONMENT_STEPS,
     assert_formal_training_ready,
     formal_training_ready,
     paper_entropy_target,
@@ -338,6 +340,36 @@ def main():
         FORMAL_TRAINING_BLOCKERS
     )
 
+    assert (
+        PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS
+        ==
+        25_000
+    )
+
+    assert (
+        PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS
+        ==
+        PAPER_EXPO_REPLAY_CAPACITY
+    )
+
+    assert (
+        PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS_SEMANTICS
+        ==
+        "EXACT_NEWLY_COLLECTED_ENVIRONMENT_TRANSITIONS"
+    )
+
+    assert (
+        PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS_BASIS
+        ==
+        "PROJECT_SPECIFIED_ONE_PAPER_D_EXPO_REPLAY_CAPACITY"
+    )
+
+    assert (
+        "stage2_total_environment_steps"
+        not in
+        FORMAL_TRAINING_BLOCKERS
+    )
+
 
     # ------------------------------------------------------------
     # Critical unresolved values must remain explicit.
@@ -355,17 +387,11 @@ def main():
         is None
     )
 
-    assert (
-        UNRESOLVED_STAGE2_TOTAL_ENVIRONMENT_STEPS
-        is None
-    )
-
     assert set(
         FORMAL_TRAINING_BLOCKERS
     ) == {
         "bc_weight",
         "stage1_gradient_steps_or_stopping_rule",
-        "stage2_total_environment_steps",
     }
 
     assert (
