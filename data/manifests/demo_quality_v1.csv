@@ -21,7 +21,7 @@ demo_quality_v1,kitten,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,FULL_HEX,
 demo_quality_v1,teapot,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,NON_FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
 demo_quality_v1,trebol,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
 demo_quality_v1,wedge,train,COLLECTED,VERIFIED,1,FULL_HEX,COMPLETE,1,FULL_HEX,MATCH,BC_CORE,VERIFIED_ORIGINAL_TRAJECTORY_ENDS_FULL_HEX,1,1,0,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/wedge/wedge_original_demo_v1.npz,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/wedge/wedge_original_demo_v1.json
-demo_quality_v1,Plate2,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
+demo_quality_v1,Plate2,train,COLLECTED,VERIFIED,1,FULL_HEX,COMPLETE,1,FULL_HEX,MATCH,BC_CORE,VERIFIED_ORIGINAL_TRAJECTORY_ENDS_FULL_HEX,1,1,0,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/Plate2/Plate2_original_demo_v1.npz,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/Plate2/Plate2_original_demo_v1.json
 demo_quality_v1,cube_minus_sphere,train,COLLECTED,VERIFIED,1,FULL_HEX,COMPLETE,1,FULL_HEX,MATCH,BC_CORE,VERIFIED_ORIGINAL_TRAJECTORY_ENDS_FULL_HEX,1,1,0,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/cube_minus_sphere/cube_minus_sphere_original_demo_v1.npz,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/cube_minus_sphere/cube_minus_sphere_original_demo_v1.json
 demo_quality_v1,blade,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,NON_FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
 demo_quality_v1,bunny,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
@@ -29,12 +29,12 @@ demo_quality_v1,Plate4,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,FULL_HEX,
 demo_quality_v1,tris_closed,train,COLLECTED,VERIFIED,3,FULL_HEX,COMPLETE,1,FULL_HEX,MATCH,BC_CORE,VERIFIED_ORIGINAL_TRAJECTORY_ENDS_FULL_HEX,1,1,0,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/tris_closed/tris_closed_original_demo_v1.npz,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/tris_closed/tris_closed_original_demo_v1.json
 demo_quality_v1,cup,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
 demo_quality_v1,bladefem,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,0,NON_FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
-demo_quality_v1,tris_open,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
-demo_quality_v1,ujoint,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
+demo_quality_v1,tris_open,train,COLLECTED,VERIFIED,9,FULL_HEX,COMPLETE,1,FULL_HEX,MATCH,BC_CORE,VERIFIED_ORIGINAL_TRAJECTORY_ENDS_FULL_HEX,1,1,0,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/tris_open/tris_open_original_demo_v1.npz,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/tris_open/tris_open_original_demo_v1.json
+demo_quality_v1,ujoint,train,COLLECTED,VERIFIED,6,FULL_HEX,COMPLETE,1,FULL_HEX,MATCH,BC_CORE,VERIFIED_ORIGINAL_TRAJECTORY_ENDS_FULL_HEX,1,1,0,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/ujoint/ujoint_original_demo_v1.npz,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/ujoint/ujoint_original_demo_v1.json
 demo_quality_v1,metatron,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,0,FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
-demo_quality_v1,joint,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
+demo_quality_v1,joint,train,COLLECTED,VERIFIED,9,FULL_HEX,COMPLETE,1,FULL_HEX,MATCH,BC_CORE,VERIFIED_ORIGINAL_TRAJECTORY_ENDS_FULL_HEX,1,1,0,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/joint/joint_original_demo_v1.npz,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/joint/joint_original_demo_v1.json
 demo_quality_v1,inlay_dovetail_3,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,NON_FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
-demo_quality_v1,lever_arm,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
+demo_quality_v1,lever_arm,train,COLLECTED,VERIFIED,29,FULL_HEX,COMPLETE,1,FULL_HEX,MATCH,BC_CORE,VERIFIED_ORIGINAL_TRAJECTORY_ENDS_FULL_HEX,1,1,0,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/lever_arm/lever_arm_original_demo_v1.npz,/home/yjk/loopycuts_test/demonstrations_v1/raw/train/lever_arm/lever_arm_original_demo_v1.json
 demo_quality_v1,mechanical08,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,0,NON_FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
 demo_quality_v1,knob,train,NOT_COLLECTED,NOT_APPLICABLE,,,COMPLETE,1,NON_FULL_HEX,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
 demo_quality_v1,boat,train,NOT_COLLECTED,NOT_APPLICABLE,,,UNPROFILED,,,,NOT_AVAILABLE,RAW_DEMO_NOT_COLLECTED,0,0,0,,
