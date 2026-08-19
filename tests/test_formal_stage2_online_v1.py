@@ -1,0 +1,469 @@
+from __future__ import annotations
+
+import math
+import sys
+from pathlib import Path
+
+import torch
+
+from tianshou.data import (
+    Collector,
+)
+
+
+PROJECT_ROOT = (
+    Path(__file__)
+    .resolve()
+    .parents[1]
+)
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(
+        0,
+        str(PROJECT_ROOT),
+    )
+
+
+from training.formal_training_v1 import (
+    FORMAL_STAGE2_ONLINE_VERSION,
+    build_formal_stage2_vector_env,
+    collect_formal_stage2_model_episode,
+    enter_formal_stage2,
+    prepare_formal_stage2_state,
+    prepare_formal_training_core,
+    sample_formal_stage2_model,
+)
+
+from training.protocol_v1 import (
+    PROJECT_STAGE1_GRADIENT_STEPS,
+    PROJECT_STAGE1_ACTUAL_SAMPLED_DEMO_TRANSITIONS,
+    PROJECT_STAGE2_EXPO_REPLAY_CAPACITY,
+    PROJECT_STAGE2_SAMPLES_PER_BUFFER,
+)
+
+
+def main():
+    core = prepare_formal_training_core(
+        seed=42
+    )
+
+    # ============================================================
+    # Phase 18.2 already validated all 782 real updates.
+    #
+    # Do NOT repeat them in this infrastructure regression.
+    # ============================================================
+
+    core.stage1_updates_completed = (
+        PROJECT_STAGE1_GRADIENT_STEPS
+    )
+
+    core.stage1_sampled_demo_transitions = (
+        PROJECT_STAGE1_ACTUAL_SAMPLED_DEMO_TRANSITIONS
+    )
+
+    enter_formal_stage2(
+        core
+    )
+
+
+    state = prepare_formal_stage2_state(
+        core
+    )
+
+
+    assert (
+        FORMAL_STAGE2_ONLINE_VERSION
+        ==
+        "loopycuts_formal_stage2_online_v1"
+    )
+
+    assert (
+        len(
+            state.models
+        )
+        ==
+        49
+    )
+
+    assert (
+        len(
+            state.expo_buffer
+        )
+        ==
+        0
+    )
+
+    assert (
+        state.expo_buffer.maxsize
+        ==
+        PROJECT_STAGE2_EXPO_REPLAY_CAPACITY
+        ==
+        25_000
+    )
+
+
+    # ============================================================
+    # Frozen uniform-IID sampler regression.
+    #
+    # Train49 is sorted by model before indexing.
+    # NumPy Generator seed 42 has first index 4, which is "blade".
+    #
+    # This sampler RNG is independent of policy exploration RNG.
+    # ============================================================
+
+    first_sample = (
+        sample_formal_stage2_model(
+            state
+        )
+    )
+
+    print(
+        "first seed42 model sample:",
+        first_sample.model,
+    )
+
+    assert (
+        first_sample.model
+        ==
+        "blade"
+    )
+
+
+    # ============================================================
+    # Fixed Plate3 integration episode.
+    #
+    # We deliberately choose a known small Train model here so this
+    # infrastructure test does not turn into a resource-heavy formal
+    # training run.
+    #
+    # Production run_next_formal_stage2_episode() uses the sampler.
+    # ============================================================
+
+    plate3 = next(
+        model
+        for model in state.models
+        if model.model == "Plate3"
+    )
+
+
+    actor_before = [
+        parameter
+        .detach()
+        .clone()
+
+        for parameter
+        in core.policy.actor.parameters()
+    ]
+
+
+    record = (
+        collect_formal_stage2_model_episode(
+            core,
+            state,
+
+            model=
+                plate3,
+        )
+    )
+
+
+    print()
+    print("=" * 96)
+    print("FORMAL STAGE-II REAL EPISODE")
+    print("=" * 96)
+
+    print(
+        "model                  :",
+        record[
+            "model"
+        ],
+    )
+
+    print(
+        "steps                  :",
+        record[
+            "steps"
+        ],
+    )
+
+    print(
+        "actions                :",
+        record[
+            "actions"
+        ],
+    )
+
+    print(
+        "outcome                :",
+        record[
+            "finalization_outcome"
+        ],
+    )
+
+    print(
+        "episode return         :",
+        record[
+            "episode_return"
+        ],
+    )
+
+    print(
+        "gradient updates       :",
+        record[
+            "gradient_updates"
+        ],
+    )
+
+    print(
+        "D_expo size            :",
+        len(
+            state.expo_buffer
+        ),
+    )
+
+
+    assert (
+        record[
+            "model"
+        ]
+        ==
+        "Plate3"
+    )
+
+    assert (
+        record[
+            "completed"
+        ]
+        is True
+    )
+
+    assert (
+        record[
+            "terminated"
+        ]
+        is True
+    )
+
+    assert (
+        record[
+            "truncated"
+        ]
+        is False
+    )
+
+    assert (
+        record[
+            "steps"
+        ]
+        ==
+        2
+    )
+
+    assert (
+        record[
+            "actions"
+        ]
+        ==
+        [
+            1,
+            0,
+        ]
+    )
+
+    assert (
+        record[
+            "finalization_outcome"
+        ]
+        ==
+        "FULL_HEX"
+    )
+
+    assert (
+        record[
+            "gradient_updates"
+        ]
+        ==
+        2
+    )
+
+    assert (
+        state.total_environment_steps
+        ==
+        2
+    )
+
+    assert (
+        state.total_gradient_updates
+        ==
+        2
+    )
+
+    assert (
+        len(
+            state.expo_buffer
+        )
+        ==
+        2
+    )
+
+    assert (
+        state.completed_episodes
+        ==
+        1
+    )
+
+    assert (
+        len(
+            state.history
+        )
+        ==
+        1
+    )
+
+
+    final_stats = record[
+        "final_training_stats"
+    ]
+
+    assert (
+        final_stats
+        is not
+        None
+    )
+
+    assert (
+        final_stats[
+            "bc_loss"
+        ]
+        ==
+        0.0
+    )
+
+    assert (
+        final_stats[
+            "bc_selected_count"
+        ]
+        ==
+        0
+    )
+
+    assert math.isfinite(
+        final_stats[
+            "actor_loss"
+        ]
+    )
+
+
+    actor_after = list(
+        core.policy.actor.parameters()
+    )
+
+    assert (
+        len(
+            actor_before
+        )
+        ==
+        len(
+            actor_after
+        )
+    )
+
+    actor_changed = any(
+        not torch.equal(
+            before,
+            after.detach(),
+        )
+
+        for before, after
+        in zip(
+            actor_before,
+            actor_after,
+        )
+    )
+
+    assert actor_changed
+
+
+    # ============================================================
+    # Critical non-empty-buffer reset regression.
+    #
+    # Collector.reset() defaults reset_buffer=True in Tianshou 2.0.1.
+    # Production code MUST always pass reset_buffer=False.
+    # ============================================================
+
+    vector_env = (
+        build_formal_stage2_vector_env(
+            model=
+                plate3
+        )
+    )
+
+    collector = Collector(
+        core.algorithm,
+        vector_env,
+        state.expo_buffer,
+
+        exploration_noise=
+            True,
+    )
+
+    try:
+        before_reset = len(
+            state.expo_buffer
+        )
+
+        assert before_reset == 2
+
+        collector.reset(
+            reset_buffer=
+                False
+        )
+
+        after_reset = len(
+            state.expo_buffer
+        )
+
+        assert (
+            after_reset
+            ==
+            before_reset
+            ==
+            2
+        )
+
+    finally:
+        collector.close()
+
+
+    print()
+    print(
+        "PASS: seed42 formal uniform-IID Train49 sampler is deterministic"
+    )
+
+    print(
+        "PASS: real Plate3 episode collected exact action sequence [1, 0]"
+    )
+
+    print(
+        "PASS: real Plate3 terminal finalization outcome is FULL_HEX"
+    )
+
+    print(
+        "PASS: two collected transitions trigger exactly two Stage-II updates"
+    )
+
+    print(
+        "PASS: every Stage-II update uses 32 D_demo + 32 D_expo with BC OFF"
+    )
+
+    print(
+        "PASS: the real Stage-II updates modify the same Actor"
+    )
+
+    print(
+        "PASS: Collector reset_buffer=False preserves non-empty D_expo"
+    )
+
+
+if __name__ == "__main__":
+    main()

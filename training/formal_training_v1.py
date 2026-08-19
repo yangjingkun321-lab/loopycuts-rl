@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import csv
 import math
 import random
 import time
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,15 @@ from tianshou.algorithm.optim import (
     TorchOptimizerFactory,
 )
 
+from tianshou.data import (
+    Collector,
+    ReplayBuffer,
+)
+
+from tianshou.env import (
+    DummyVectorEnv,
+)
+
 from tianshou.utils.torch_utils import (
     policy_within_training_step,
 )
@@ -29,6 +39,18 @@ from tianshou.utils.torch_utils import (
 
 from algorithms.demo_guided_discrete_sac_v1 import (
     LoopyCutsDemoGuidedDiscreteSACV1,
+)
+
+from envs.final_reward_wrapper import (
+    FinalRewardWrapper,
+)
+
+from envs.finalization_eval_wrapper import (
+    FinalizationEvalWrapper,
+)
+
+from envs.loopycuts_env import (
+    LoopyCutsEnv,
 )
 
 from imitation.demo_replay import (
@@ -96,7 +118,21 @@ from training.protocol_v1 import (
 
     PROJECT_STAGE2_BC_ENABLED,
     PROJECT_STAGE2_EXPLORATION_EPSILON,
+    PROJECT_STAGE2_COLLECTOR_EXPLORATION_NOISE,
     PROJECT_STAGE2_SAMPLES_PER_BUFFER,
+    PROJECT_STAGE2_EXPO_REPLAY_CAPACITY,
+
+    PROJECT_STAGE2_MODEL_SPLIT,
+    PROJECT_STAGE2_MODEL_COUNT,
+    PROJECT_STAGE2_MODEL_SAMPLING,
+    PROJECT_STAGE2_MODEL_SAMPLING_RNG,
+    PROJECT_STAGE2_DEV_ALLOWED,
+    PROJECT_STAGE2_BLIND_ALLOWED,
+
+    PROJECT_STAGE2_COLLECTION_UPDATE_RATIO,
+    PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS,
+    PROJECT_STAGE2_UPDATE_SCHEDULING,
+    PROJECT_STAGE2_BUDGET_BOUNDARY_POLICY,
 
     PROJECT_NETWORK_REINITIALIZATION,
 
@@ -1125,4 +1161,1242 @@ def enter_formal_stage2(
 
         "object_identities":
             identities_after,
+    }
+
+
+# ======================================================================
+# PHASE 18.3 -- FORMAL STAGE-II ONLINE TRAINING
+# ======================================================================
+
+FORMAL_STAGE2_ONLINE_VERSION = (
+    "loopycuts_formal_stage2_online_v1"
+)
+
+
+@dataclass(
+    frozen=True
+)
+class FormalStage2ModelV1:
+    model: str
+
+    mesh_file: Path
+    loop_file: Path
+
+    header_loops: int
+    actionable_nonconvex: int
+
+
+@dataclass
+class FormalStage2StateV1:
+    seed: int
+
+    expo_buffer: Any
+
+    models: tuple[
+        FormalStage2ModelV1,
+        ...
+    ]
+
+    model_rng: np.random.Generator
+
+    total_environment_steps: int = 0
+    total_gradient_updates: int = 0
+
+    episode_attempts: int = 0
+    completed_episodes: int = 0
+
+    history: list[
+        dict
+    ] = field(
+        default_factory=list
+    )
+
+
+def assert_formal_stage2_protocol():
+    if (
+        PROJECT_STAGE2_MODEL_SPLIT
+        !=
+        "train"
+    ):
+        raise FormalTrainingCoreError(
+            "Formal Stage-II must use split=train"
+        )
+
+    if (
+        PROJECT_STAGE2_MODEL_COUNT
+        !=
+        49
+    ):
+        raise FormalTrainingCoreError(
+            "Formal Stage-II model count must be 49"
+        )
+
+    if (
+        PROJECT_STAGE2_MODEL_SAMPLING
+        !=
+        "UNIFORM_IID_PER_EPISODE"
+    ):
+        raise FormalTrainingCoreError(
+            "Unexpected formal model-sampling semantics"
+        )
+
+    if (
+        PROJECT_STAGE2_MODEL_SAMPLING_RNG
+        !=
+        "NUMPY_GENERATOR_SEEDED_BY_FORMAL_RUN_SEED"
+    ):
+        raise FormalTrainingCoreError(
+            "Unexpected formal model-sampling RNG semantics"
+        )
+
+    if (
+        PROJECT_STAGE2_DEV_ALLOWED
+        is not
+        False
+    ):
+        raise FormalTrainingCoreError(
+            "Dev models must not enter formal Stage-II"
+        )
+
+    if (
+        PROJECT_STAGE2_BLIND_ALLOWED
+        is not
+        False
+    ):
+        raise FormalTrainingCoreError(
+            "Blind models must not enter formal Stage-II"
+        )
+
+    if (
+        PROJECT_STAGE2_COLLECTOR_EXPLORATION_NOISE
+        is not
+        True
+    ):
+        raise FormalTrainingCoreError(
+            "Formal Stage-II Collector exploration must be enabled"
+        )
+
+    if (
+        PROJECT_STAGE2_EXPO_REPLAY_CAPACITY
+        !=
+        25_000
+    ):
+        raise FormalTrainingCoreError(
+            "Formal D_expo capacity must be 25000"
+        )
+
+    if (
+        PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS
+        !=
+        25_000
+    ):
+        raise FormalTrainingCoreError(
+            "Formal Stage-II environment budget must be 25000"
+        )
+
+    if not math.isclose(
+        PROJECT_STAGE2_COLLECTION_UPDATE_RATIO,
+        1.0,
+    ):
+        raise FormalTrainingCoreError(
+            "Formal Stage-II update ratio must be 1.0"
+        )
+
+    if (
+        PROJECT_STAGE2_UPDATE_SCHEDULING
+        !=
+        "AFTER_EACH_COMPLETED_EPISODE"
+    ):
+        raise FormalTrainingCoreError(
+            "Unexpected Stage-II update scheduling"
+        )
+
+    if (
+        PROJECT_STAGE2_BUDGET_BOUNDARY_POLICY
+        !=
+        (
+            "STOP_AT_EXACT_TRANSITION_BUDGET_WITHOUT_"
+            "SYNTHETIC_TERMINAL_OR_TRUNCATION"
+        )
+    ):
+        raise FormalTrainingCoreError(
+            "Unexpected Stage-II budget-boundary semantics"
+        )
+
+
+def load_formal_stage2_models(
+    *,
+    dataset_manifest: Path =
+        DEFAULT_DATASET_MANIFEST,
+):
+    dataset_manifest = Path(
+        dataset_manifest
+    )
+
+    with dataset_manifest.open(
+        newline="",
+        encoding="utf-8",
+    ) as f:
+        rows = list(
+            csv.DictReader(f)
+        )
+
+    train_rows = [
+        row
+        for row in rows
+        if (
+            row[
+                "split"
+            ]
+            ==
+            PROJECT_STAGE2_MODEL_SPLIT
+        )
+    ]
+
+    if (
+        len(
+            train_rows
+        )
+        !=
+        PROJECT_STAGE2_MODEL_COUNT
+        or
+        PROJECT_STAGE2_MODEL_COUNT
+        !=
+        49
+    ):
+        raise FormalTrainingCoreError(
+            "Formal Train49 model count mismatch"
+        )
+
+    names = [
+        row[
+            "model"
+        ]
+        for row in train_rows
+    ]
+
+    if (
+        len(
+            set(
+                names
+            )
+        )
+        !=
+        49
+    ):
+        raise FormalTrainingCoreError(
+            "Formal Train49 contains duplicate model names"
+        )
+
+    models = []
+
+    for row in train_rows:
+        mesh_file = Path(
+            row[
+                "mesh_file"
+            ]
+        ).resolve()
+
+        loop_file = Path(
+            row[
+                "loop_file"
+            ]
+        ).resolve()
+
+        if not mesh_file.is_file():
+            raise FileNotFoundError(
+                mesh_file
+            )
+
+        if not loop_file.is_file():
+            raise FileNotFoundError(
+                loop_file
+            )
+
+        models.append(
+            FormalStage2ModelV1(
+                model=
+                    str(
+                        row[
+                            "model"
+                        ]
+                    ),
+
+                mesh_file=
+                    mesh_file,
+
+                loop_file=
+                    loop_file,
+
+                header_loops=
+                    int(
+                        row[
+                            "header_loops"
+                        ]
+                    ),
+
+                actionable_nonconvex=
+                    int(
+                        row[
+                            "actionable_nonconvex"
+                        ]
+                    ),
+            )
+        )
+
+    models.sort(
+        key=lambda x:
+            x.model
+    )
+
+    return tuple(
+        models
+    )
+
+
+def prepare_formal_stage2_state(
+    core: FormalTrainingCoreV1,
+    *,
+    dataset_manifest: Path =
+        DEFAULT_DATASET_MANIFEST,
+):
+    assert_formal_stage2_protocol()
+
+    if (
+        core.stage
+        !=
+        "STAGE_II"
+    ):
+        raise FormalTrainingCoreError(
+            "Formal Stage-II state requires core.stage == STAGE_II"
+        )
+
+    if (
+        core.algorithm.bc_enabled
+    ):
+        raise FormalTrainingCoreError(
+            "Formal Stage-II must begin with BC disabled"
+        )
+
+    if (
+        core.stage1_updates_completed
+        !=
+        PROJECT_STAGE1_GRADIENT_STEPS
+    ):
+        raise FormalTrainingCoreError(
+            "Formal Stage-I update budget is incomplete"
+        )
+
+    if (
+        core.stage1_sampled_demo_transitions
+        !=
+        PROJECT_STAGE1_ACTUAL_SAMPLED_DEMO_TRANSITIONS
+    ):
+        raise FormalTrainingCoreError(
+            "Formal Stage-I demonstration exposure is incomplete"
+        )
+
+    models = (
+        load_formal_stage2_models(
+            dataset_manifest=
+                dataset_manifest
+        )
+    )
+
+    expo_buffer = ReplayBuffer(
+        size=
+            PROJECT_STAGE2_EXPO_REPLAY_CAPACITY,
+
+        random_seed=
+            int(
+                core.seed
+            ),
+    )
+
+    model_rng = np.random.default_rng(
+        int(
+            core.seed
+        )
+    )
+
+    return FormalStage2StateV1(
+        seed=
+            int(
+                core.seed
+            ),
+
+        expo_buffer=
+            expo_buffer,
+
+        models=
+            models,
+
+        model_rng=
+            model_rng,
+    )
+
+
+def sample_formal_stage2_model(
+    state: FormalStage2StateV1,
+):
+    if (
+        len(
+            state.models
+        )
+        !=
+        PROJECT_STAGE2_MODEL_COUNT
+        or
+        PROJECT_STAGE2_MODEL_COUNT
+        !=
+        49
+    ):
+        raise FormalTrainingCoreError(
+            "Formal Stage-II sampling model count mismatch"
+        )
+
+    index = int(
+        state.model_rng.integers(
+            low=0,
+            high=len(
+                state.models
+            ),
+        )
+    )
+
+    return state.models[
+        index
+    ]
+
+
+def build_formal_stage2_vector_env(
+    *,
+    model: FormalStage2ModelV1,
+    executable: Path =
+        DEFAULT_EXECUTABLE,
+):
+    executable = Path(
+        executable
+    )
+
+    if not executable.is_file():
+        raise FileNotFoundError(
+            executable
+        )
+
+    def make_env():
+        return FinalRewardWrapper(
+            FinalizationEvalWrapper(
+                LoopyCutsEnv(
+                    executable=
+                        executable,
+
+                    mesh_file=
+                        model.mesh_file,
+
+                    loop_file=
+                        model.loop_file,
+
+                    echo_logs=
+                        False,
+                )
+            )
+        )
+
+    return DummyVectorEnv(
+        [
+            make_env
+        ]
+    )
+
+
+def _collect_stats_steps(
+    stats,
+):
+    if isinstance(
+        stats,
+        dict,
+    ):
+        return int(
+            stats[
+                "n_collected_steps"
+            ]
+        )
+
+    return int(
+        stats.n_collected_steps
+    )
+
+
+def _single_int(
+    value,
+):
+    return int(
+        np.asarray(
+            value
+        )
+        .reshape(
+            -1
+        )[
+            0
+        ]
+    )
+
+
+def _single_float(
+    value,
+):
+    return float(
+        np.asarray(
+            value
+        )
+        .reshape(
+            -1
+        )[
+            0
+        ]
+    )
+
+
+def _single_bool(
+    value,
+):
+    return bool(
+        np.asarray(
+            value
+        )
+        .reshape(
+            -1
+        )[
+            0
+        ]
+    )
+
+
+def flush_formal_stage2_updates(
+    core: FormalTrainingCoreV1,
+    state: FormalStage2StateV1,
+):
+    if (
+        core.stage
+        !=
+        "STAGE_II"
+    ):
+        raise FormalTrainingCoreError(
+            "Stage-II updates require STAGE_II state"
+        )
+
+    if (
+        core.algorithm.bc_enabled
+    ):
+        raise FormalTrainingCoreError(
+            "Stage-II updates require BC disabled"
+        )
+
+    pending_updates = (
+        state.total_environment_steps
+        -
+        state.total_gradient_updates
+    )
+
+    if pending_updates < 0:
+        raise FormalTrainingCoreError(
+            "Stage-II gradient updates exceed collected transitions"
+        )
+
+    if pending_updates == 0:
+        return {
+            "gradient_updates":
+                0,
+
+            "final_training_stats":
+                None,
+        }
+
+    if (
+        len(
+            state.expo_buffer
+        )
+        <=
+        0
+    ):
+        raise FormalTrainingCoreError(
+            "Cannot update from empty D_expo"
+        )
+
+    final_snapshot = None
+
+    with policy_within_training_step(
+        core.policy
+    ):
+        for _ in range(
+            pending_updates
+        ):
+            stats, mix = (
+                core.algorithm.update_equal_replay(
+                    demo_buffer=
+                        core.demo_buffer,
+
+                    expo_buffer=
+                        state.expo_buffer,
+
+                    samples_per_buffer=
+                        PROJECT_STAGE2_SAMPLES_PER_BUFFER,
+                )
+            )
+
+            if (
+                mix[
+                    "demo_samples"
+                ]
+                !=
+                PROJECT_STAGE2_SAMPLES_PER_BUFFER
+            ):
+                raise FormalTrainingCoreError(
+                    "Stage-II D_demo sample count mismatch"
+                )
+
+            if (
+                mix[
+                    "expo_samples"
+                ]
+                !=
+                PROJECT_STAGE2_SAMPLES_PER_BUFFER
+            ):
+                raise FormalTrainingCoreError(
+                    "Stage-II D_expo sample count mismatch"
+                )
+
+            if (
+                mix[
+                    "total_samples"
+                ]
+                !=
+                2
+                *
+                PROJECT_STAGE2_SAMPLES_PER_BUFFER
+            ):
+                raise FormalTrainingCoreError(
+                    "Stage-II mixed minibatch size mismatch"
+                )
+
+            snapshot = training_stats_snapshot(
+                stats
+            )
+
+            if (
+                float(
+                    snapshot.get(
+                        "bc_loss",
+                        0.0,
+                    )
+                )
+                !=
+                0.0
+            ):
+                raise FormalTrainingCoreError(
+                    "BC loss became non-zero during Stage-II"
+                )
+
+            state.total_gradient_updates += 1
+
+            final_snapshot = snapshot
+
+    if (
+        state.total_gradient_updates
+        >
+        state.total_environment_steps
+    ):
+        raise FormalTrainingCoreError(
+            "Stage-II update/collection accounting mismatch"
+        )
+
+    return {
+        "gradient_updates":
+            pending_updates,
+
+        "final_training_stats":
+            final_snapshot,
+    }
+
+
+def collect_formal_stage2_model_episode(
+    core: FormalTrainingCoreV1,
+    state: FormalStage2StateV1,
+    *,
+    model: FormalStage2ModelV1,
+    executable: Path =
+        DEFAULT_EXECUTABLE,
+):
+    """
+    Collect exactly one native LoopyCuts episode, except when the
+    frozen global 25,000-transition budget is reached first.
+
+    A budget-boundary prefix is NOT marked terminated/truncated.
+
+    After collection stops, perform exactly one Stage-II SAC update
+    for every newly collected transition.
+
+    Normal case:
+        completed episode of N transitions
+        -> N updates
+
+    Final budget case:
+        M-transition partial prefix reaches exactly 25,000
+        -> M updates
+
+    The final flush preserves the already-frozen global 1.0
+    gradient-update / collected-transition ratio.
+    """
+
+    if (
+        core.stage
+        !=
+        "STAGE_II"
+    ):
+        raise FormalTrainingCoreError(
+            "Online collection requires STAGE_II"
+        )
+
+    if (
+        core.algorithm.bc_enabled
+    ):
+        raise FormalTrainingCoreError(
+            "Online Stage-II collection requires BC OFF"
+        )
+
+    if (
+        state.total_environment_steps
+        >=
+        PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS
+    ):
+        raise FormalTrainingCoreError(
+            "Formal Stage-II environment budget is already exhausted"
+        )
+
+    if (
+        len(
+            state.expo_buffer
+        )
+        !=
+        state.total_environment_steps
+    ):
+        raise FormalTrainingCoreError(
+            "D_expo size does not match formal collection counter"
+        )
+
+    episode_index = (
+        state.episode_attempts
+        +
+        1
+    )
+
+    state.episode_attempts = (
+        episode_index
+    )
+
+    environment_steps_before = (
+        state.total_environment_steps
+    )
+
+    replay_size_before = len(
+        state.expo_buffer
+    )
+
+    actions = []
+
+    episode_return = 0.0
+
+    terminated = False
+    truncated = False
+
+    finalization_outcome = (
+        "NONE"
+    )
+
+    vector_env = (
+        build_formal_stage2_vector_env(
+            model=
+                model,
+
+            executable=
+                executable,
+        )
+    )
+
+    collector = Collector(
+        core.algorithm,
+        vector_env,
+        state.expo_buffer,
+
+        exploration_noise=
+            PROJECT_STAGE2_COLLECTOR_EXPLORATION_NOISE,
+    )
+
+    try:
+        # CRITICAL TIanshou 2.0.1 semantic:
+        #
+        # Collector.reset() defaults reset_buffer=True.
+        # D_expo must accumulate across all Train49 episodes.
+        collector.reset(
+            reset_buffer=
+                False,
+
+            reset_stats=
+                True,
+        )
+
+        if (
+            len(
+                state.expo_buffer
+            )
+            !=
+            replay_size_before
+        ):
+            raise FormalTrainingCoreError(
+                "Collector reset unexpectedly changed D_expo"
+            )
+
+        while (
+            state.total_environment_steps
+            <
+            PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS
+        ):
+            before = len(
+                state.expo_buffer
+            )
+
+            stats = collector.collect(
+                n_step=1
+            )
+
+            after = len(
+                state.expo_buffer
+            )
+
+            if (
+                _collect_stats_steps(
+                    stats
+                )
+                !=
+                1
+            ):
+                raise FormalTrainingCoreError(
+                    "collect(n_step=1) did not collect exactly one step"
+                )
+
+            if (
+                after
+                !=
+                before + 1
+            ):
+                raise FormalTrainingCoreError(
+                    "D_expo did not grow by exactly one transition"
+                )
+
+            transition_index = (
+                after
+                -
+                1
+            )
+
+            transition = state.expo_buffer[
+                np.asarray(
+                    [
+                        transition_index
+                    ],
+                    dtype=np.int64,
+                )
+            ]
+
+            action = _single_int(
+                transition.act
+            )
+
+            reward = _single_float(
+                transition.rew
+            )
+
+            terminated = _single_bool(
+                transition.terminated
+            )
+
+            truncated = _single_bool(
+                transition.truncated
+            )
+
+            if (
+                truncated
+                is not
+                False
+            ):
+                raise FormalTrainingCoreError(
+                    "LoopyCuts formal Stage-II must not use truncation"
+                )
+
+            current_mask = np.asarray(
+                transition.obs.mask,
+                dtype=np.bool_,
+            ).reshape(
+                1,
+                -1,
+            )
+
+            if not bool(
+                current_mask[
+                    0,
+                    action,
+                ]
+            ):
+                raise FormalTrainingCoreError(
+                    "Collector stored an action illegal under its dynamic mask"
+                )
+
+            if not math.isfinite(
+                reward
+            ):
+                raise FormalTrainingCoreError(
+                    "Non-finite Stage-II reward"
+                )
+
+            if not hasattr(
+                transition.info,
+                "reward_version",
+            ):
+                raise FormalTrainingCoreError(
+                    "Stage-II transition lacks reward_version"
+                )
+
+            reward_version = str(
+                np.asarray(
+                    transition.info.reward_version
+                )
+                .reshape(
+                    -1
+                )[
+                    0
+                ]
+            )
+
+            if (
+                reward_version
+                !=
+                "final_v2"
+            ):
+                raise FormalTrainingCoreError(
+                    "Formal Stage-II did not collect Reward V2"
+                )
+
+            actions.append(
+                action
+            )
+
+            episode_return += (
+                reward
+            )
+
+            state.total_environment_steps += 1
+
+            if (
+                len(
+                    state.expo_buffer
+                )
+                !=
+                state.total_environment_steps
+            ):
+                raise FormalTrainingCoreError(
+                    "D_expo/global-step accounting mismatch"
+                )
+
+            if terminated:
+                if not hasattr(
+                    transition.info,
+                    "finalization_outcome",
+                ):
+                    raise FormalTrainingCoreError(
+                        "Terminal Stage-II transition lacks finalization outcome"
+                    )
+
+                finalization_outcome = str(
+                    np.asarray(
+                        transition
+                        .info
+                        .finalization_outcome
+                        .outcome
+                    )
+                    .reshape(
+                        -1
+                    )[
+                        0
+                    ]
+                )
+
+                if finalization_outcome not in {
+                    "FULL_HEX",
+                    "NON_FULL_HEX",
+                    "FINALIZATION_CRASH",
+                }:
+                    raise FormalTrainingCoreError(
+                        "Unknown terminal finalization outcome: "
+                        f"{finalization_outcome}"
+                    )
+
+                break
+
+            if (
+                state.total_environment_steps
+                ==
+                PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS
+            ):
+                # Exact budget boundary.
+                #
+                # Deliberately do NOT change the stored transition
+                # to terminated=True or truncated=True.
+                break
+
+    finally:
+        collector.close()
+
+    episode_steps = (
+        state.total_environment_steps
+        -
+        environment_steps_before
+    )
+
+    if episode_steps <= 0:
+        raise FormalTrainingCoreError(
+            "Stage-II episode collected zero transitions"
+        )
+
+    budget_exhausted = (
+        state.total_environment_steps
+        ==
+        PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS
+    )
+
+    completed = bool(
+        terminated
+    )
+
+    if completed:
+        state.completed_episodes += 1
+
+    update_result = (
+        flush_formal_stage2_updates(
+            core,
+            state,
+        )
+    )
+
+    if (
+        update_result[
+            "gradient_updates"
+        ]
+        !=
+        episode_steps
+    ):
+        raise FormalTrainingCoreError(
+            "Stage-II updates do not equal newly collected transitions"
+        )
+
+    if (
+        state.total_gradient_updates
+        !=
+        state.total_environment_steps
+    ):
+        raise FormalTrainingCoreError(
+            "Stage-II global update ratio is not exactly 1.0"
+        )
+
+    record = {
+        "episode_index":
+            episode_index,
+
+        "model":
+            model.model,
+
+        "mesh_file":
+            str(
+                model.mesh_file
+            ),
+
+        "loop_file":
+            str(
+                model.loop_file
+            ),
+
+        "completed":
+            completed,
+
+        "budget_exhausted":
+            budget_exhausted,
+
+        "terminated":
+            bool(
+                terminated
+            ),
+
+        "truncated":
+            bool(
+                truncated
+            ),
+
+        "steps":
+            episode_steps,
+
+        "actions":
+            [
+                int(
+                    action
+                )
+                for action in actions
+            ],
+
+        "episode_return":
+            float(
+                episode_return
+            ),
+
+        "finalization_outcome":
+            finalization_outcome,
+
+        "gradient_updates":
+            int(
+                update_result[
+                    "gradient_updates"
+                ]
+            ),
+
+        "total_environment_steps":
+            state.total_environment_steps,
+
+        "total_gradient_updates":
+            state.total_gradient_updates,
+
+        "expo_buffer_size":
+            len(
+                state.expo_buffer
+            ),
+
+        "final_training_stats":
+            update_result[
+                "final_training_stats"
+            ],
+    }
+
+    state.history.append(
+        record
+    )
+
+    return record
+
+
+def run_next_formal_stage2_episode(
+    core: FormalTrainingCoreV1,
+    state: FormalStage2StateV1,
+    *,
+    executable: Path =
+        DEFAULT_EXECUTABLE,
+):
+    model = (
+        sample_formal_stage2_model(
+            state
+        )
+    )
+
+    return (
+        collect_formal_stage2_model_episode(
+            core,
+            state,
+
+            model=
+                model,
+
+            executable=
+                executable,
+        )
+    )
+
+
+def run_formal_stage2_to_budget(
+    core: FormalTrainingCoreV1,
+    state: FormalStage2StateV1,
+    *,
+    executable: Path =
+        DEFAULT_EXECUTABLE,
+):
+    while (
+        state.total_environment_steps
+        <
+        PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS
+    ):
+        record = (
+            run_next_formal_stage2_episode(
+                core,
+                state,
+
+                executable=
+                    executable,
+            )
+        )
+
+        print(
+            "formal-stage2 "
+            f"episode={record['episode_index']} "
+            f"model={record['model']} "
+            f"steps={record['steps']} "
+            f"outcome={record['finalization_outcome']} "
+            f"total_env={record['total_environment_steps']}/"
+            f"{PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS} "
+            f"total_updates={record['total_gradient_updates']}"
+        )
+
+    if (
+        state.total_environment_steps
+        !=
+        PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS
+    ):
+        raise FormalTrainingCoreError(
+            "Formal Stage-II did not stop at exact transition budget"
+        )
+
+    if (
+        state.total_gradient_updates
+        !=
+        PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS
+    ):
+        raise FormalTrainingCoreError(
+            "Formal Stage-II did not execute exact 1.0 update ratio"
+        )
+
+    if (
+        len(
+            state.expo_buffer
+        )
+        !=
+        PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS
+    ):
+        raise FormalTrainingCoreError(
+            "Formal D_expo did not end at exact frozen capacity"
+        )
+
+    return {
+        "total_environment_steps":
+            state.total_environment_steps,
+
+        "total_gradient_updates":
+            state.total_gradient_updates,
+
+        "episode_attempts":
+            state.episode_attempts,
+
+        "completed_episodes":
+            state.completed_episodes,
+
+        "expo_buffer_size":
+            len(
+                state.expo_buffer
+            ),
+
+        "history":
+            state.history,
     }
