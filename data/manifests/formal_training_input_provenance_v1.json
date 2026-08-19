@@ -1,0 +1,568 @@
+{
+  "base_input_provenance": {
+    "path": "data/manifests/bc_weight_calibration_input_provenance_v1.json",
+    "sha256": "b97d70f52ebbc0bf861042e6adfe29b4305952f459a59cfffa524d154f82d01d"
+  },
+  "bc_weight_selection": {
+    "path": "data/audits/bc_weight_selection_v1.json",
+    "selected_bc_weight": 3.0,
+    "sha256": "50e7814b75fdf1add71dcd101f9d256b1eadd0406d305bed82da0824c6d79611"
+  },
+  "dataset_manifest": {
+    "path": "data/manifests/dataset_split_v2.csv",
+    "sha256": "e7bc6ba976417d427d9a105f5b90a54c304c08fdd0baff542e083c8f42ff826b"
+  },
+  "demo_quality_manifest": {
+    "path": "data/manifests/demo_quality_v1.csv",
+    "sha256": "4fa404d8436fce4aebef526eac6ab904fe3c6b846432f8fc1256cbc416b66f89"
+  },
+  "protocol_freeze_commit": "9480222ab9fbc45a836c7e88dad4536abe8f5faa",
+  "schema_version": "formal_training_input_provenance_v1",
+  "train49": {
+    "aggregate_algorithm": "SORT_BY_MODEL_THEN_SHA256_OF_TAB_SEPARATED_MODEL_MESH_PATH_MESH_BYTES_MESH_SHA256_LOOP_PATH_LOOP_BYTES_LOOP_SHA256_HEADER_LOOPS_ACTIONABLE_NONCONVEX",
+    "aggregate_sha256": "a1e68312f05457e2f3ecb92e7b59fa93facbc57850833b4f8931a7143f55d42d",
+    "inputs": [
+      {
+        "actionable_nonconvex": 61,
+        "header_loops": 85,
+        "loop_bytes": 173250,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/Plate2/4_rem_rem_loop.txt",
+        "loop_sha256": "5a3d749510e6b8cb762259b728bb02124dda774669a36ab3613292bc8b32962d",
+        "mesh_bytes": 1256237,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/Plate2/4_rem_rem_splitted.obj",
+        "mesh_sha256": "33a64dbb1f8cd1d943840818650a716f62f71d330f09a63762453ad960e77340",
+        "model": "Plate2"
+      },
+      {
+        "actionable_nonconvex": 30,
+        "header_loops": 76,
+        "loop_bytes": 69325,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/Plate3/5_rem_rem_loop.txt",
+        "loop_sha256": "2b59fafac7a9a92608a915b3fdf52f14a0215828211104dc21041f8b9ff0d0d6",
+        "mesh_bytes": 536844,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/Plate3/5_rem_rem_splitted.obj",
+        "mesh_sha256": "e7032bf96b7d40da93c4db2adedbc340db746148ad2a63a846dfa6ff61f9424e",
+        "model": "Plate3"
+      },
+      {
+        "actionable_nonconvex": 63,
+        "header_loops": 83,
+        "loop_bytes": 303950,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/Plate4/6_rem_rem_loop.txt",
+        "loop_sha256": "1ca29a9a1490d32a9931cc04ce23da6e23045f150f87f6c4faa43af961a6c1a1",
+        "mesh_bytes": 3164687,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/Plate4/6_rem_rem_splitted.obj",
+        "mesh_sha256": "a48b052620c9ed7d6926abff50ff998e85079796edd0edff94a741e4454b145d",
+        "model": "Plate4"
+      },
+      {
+        "actionable_nonconvex": 83,
+        "header_loops": 131,
+        "loop_bytes": 110712,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/bearing_plate/bearing_plate_rem_loop.txt",
+        "loop_sha256": "08ffb866fc08a4fd20a2aaa018eea876387c38d523e3ef408e03a908e05a4568",
+        "mesh_bytes": 832466,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/bearing_plate/bearing_plate_rem_splitted.obj",
+        "mesh_sha256": "714529acfce18f69bca50765e43ed0aef19184a321d3fcaa18769478e6d41100",
+        "model": "bearing_plate"
+      },
+      {
+        "actionable_nonconvex": 62,
+        "header_loops": 62,
+        "loop_bytes": 161754,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/blade/blade_rem_loop.txt",
+        "loop_sha256": "1f7b771557615e98f87bfd661b3a52139f4f1df893e6da431102132fcd2060d3",
+        "mesh_bytes": 2016133,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/blade/blade_rem_splitted.obj",
+        "mesh_sha256": "bb5fcfe1a815e8fc0674624acf1afb0afe3cf9f9994dca148f607b9632545390",
+        "model": "blade"
+      },
+      {
+        "actionable_nonconvex": 70,
+        "header_loops": 94,
+        "loop_bytes": 112720,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/bladefem/bladefem_rem_rem_loop.txt",
+        "loop_sha256": "ab1eadbe753cf0c514830bd230b149c7bcc7ec6f5c48fac0609156917dea585d",
+        "mesh_bytes": 817022,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/bladefem/bladefem_rem_rem_splitted.obj",
+        "mesh_sha256": "f772500cbb5881cbb44377a75e8e98541f2229d480194bcaccf9761bb9b4c406",
+        "model": "bladefem"
+      },
+      {
+        "actionable_nonconvex": 77,
+        "header_loops": 99,
+        "loop_bytes": 301133,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/boat/boat_rem_rem_loop.txt",
+        "loop_sha256": "38bbd590dc39712abe688e370fffe8768e2e8a11e32543b1ec10382c4f11a53b",
+        "mesh_bytes": 3544879,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/boat/boat_rem_rem_splitted.obj",
+        "mesh_sha256": "2cb99626c2d925d1694cd7fb43c8d69279eebb2ab7d40cb5637a457cb81687cd",
+        "model": "boat"
+      },
+      {
+        "actionable_nonconvex": 61,
+        "header_loops": 61,
+        "loop_bytes": 101409,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/bolt/bolt_rem_loop.txt",
+        "loop_sha256": "b52e6f3d817401a2cdf10547e3872d35cd84ff7d114bca6e849abb5ffe774c2f",
+        "mesh_bytes": 891419,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/bolt/bolt_rem_splitted.obj",
+        "mesh_sha256": "bda2a72d4f5be7e8f1f42a1c253ef50cfdf29ca17097e9a4c8be9e6a4550592d",
+        "model": "bolt"
+      },
+      {
+        "actionable_nonconvex": 61,
+        "header_loops": 61,
+        "loop_bytes": 100936,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/bone_femur/bone_rem_loop.txt",
+        "loop_sha256": "f842e13655ed15c15afd5fa7eed82f61f6bea9ff9e9bf566cd33dce427eb2f91",
+        "mesh_bytes": 889836,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/bone_femur/bone_rem_splitted.obj",
+        "mesh_sha256": "a7ecc0ec1680f7eef3c2cafa223ce3b1db80b30d3f7613ee0333467401aa6702",
+        "model": "bone_femur"
+      },
+      {
+        "actionable_nonconvex": 63,
+        "header_loops": 63,
+        "loop_bytes": 155880,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/bunny/bunny_rem_loop.txt",
+        "loop_sha256": "d8229bf6cded1cc84393f1ba168867148ef853dbffa12413f8e68185ac2631f3",
+        "mesh_bytes": 1677446,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/bunny/bunny_rem_splitted.obj",
+        "mesh_sha256": "d5ed4bb61aef5d80fbedec8c3c22f3ca2a6265181bf74a52e76b6c555ed4a5b2",
+        "model": "bunny"
+      },
+      {
+        "actionable_nonconvex": 59,
+        "header_loops": 59,
+        "loop_bytes": 134039,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/buste/buste_rem_loop.txt",
+        "loop_sha256": "b2e05d90877e391ecee4cddb38af3ec57a69fd257d7e8438d24bbeda771a60b3",
+        "mesh_bytes": 1256504,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/buste/buste_rem_splitted.obj",
+        "mesh_sha256": "13fb047d8c186dabcdf3b73fb4992eb9b9dbc9bd38ae27fd1f83f9fc59c0dc5a",
+        "model": "buste"
+      },
+      {
+        "actionable_nonconvex": 61,
+        "header_loops": 61,
+        "loop_bytes": 28792,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/cactus/cactus_rem_loop.txt",
+        "loop_sha256": "adfbc815f1c5a43c437f5f3b6b6418141ec962fa526f750959ee15724be4ec20",
+        "mesh_bytes": 203346,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/cactus/cactus_rem_splitted.obj",
+        "mesh_sha256": "c652ae11777825e181b9c68820276ef2746a638b399862071942581a9e60d7e7",
+        "model": "cactus"
+      },
+      {
+        "actionable_nonconvex": 199,
+        "header_loops": 199,
+        "loop_bytes": 263703,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/camille_hand/camille_hand_rem_loop.txt",
+        "loop_sha256": "eb6ec2615f9843bb6c3f4cc2bcfb5cffee799c470b3dd5acfc12378cdea0c990",
+        "mesh_bytes": 1996479,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/camille_hand/camille_hand_rem_splitted.obj",
+        "mesh_sha256": "f7da75c8da92dba32dbfb603c523d66a1df22e9a96c02e6652df63b5c56c8e41",
+        "model": "camille_hand"
+      },
+      {
+        "actionable_nonconvex": 57,
+        "header_loops": 57,
+        "loop_bytes": 109238,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/cat/cat_rem_loop.txt",
+        "loop_sha256": "df4c15b182142aacac8ac5fcddaa349d5a3753b2e0cf102872084da589f2e396",
+        "mesh_bytes": 761282,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/cat/cat_rem_splitted.obj",
+        "mesh_sha256": "69817e180b8e892e611e874eaf73f84245ee28fd472674779dfd781c1992daca",
+        "model": "cat"
+      },
+      {
+        "actionable_nonconvex": 61,
+        "header_loops": 91,
+        "loop_bytes": 166327,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/cube_minus_sphere/cube_minus_sphere_rem_loop.txt",
+        "loop_sha256": "e84380cc9e49fbaf5e55778addf62ae36088ad82ef8f154dabb8ff8de4f509fa",
+        "mesh_bytes": 993922,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/cube_minus_sphere/cube_minus_sphere_rem_splitted.obj",
+        "mesh_sha256": "f7d209143ed09ae3b467f795e22591d112668a0a557adae0c270552db3b053ad",
+        "model": "cube_minus_sphere"
+      },
+      {
+        "actionable_nonconvex": 65,
+        "header_loops": 71,
+        "loop_bytes": 266893,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/cup/cup_rem_rem_loop.txt",
+        "loop_sha256": "795d9ba53a0b91fef9f34336926a8042821fec295c13a2d33ba444fdceb23e89",
+        "mesh_bytes": 2655340,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/cup/cup_rem_rem_splitted.obj",
+        "mesh_sha256": "e32673cf770bec4b611242a291c5fb871764ca31d18684ff5a7ceb8cfe00fc4c",
+        "model": "cup"
+      },
+      {
+        "actionable_nonconvex": 61,
+        "header_loops": 61,
+        "loop_bytes": 113948,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/dancer/dancer_rem_rem_loop.txt",
+        "loop_sha256": "b031424b3f521a29b786806bf3970aa0f913bdc8a5725b2cc8fabffcbe68b8e8",
+        "mesh_bytes": 1951688,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/dancer/dancer_rem_rem_splitted.obj",
+        "mesh_sha256": "84e1e729ed5d5827b5c644534c75b08655b1f149593330ee2957e52c40d477a9",
+        "model": "dancer"
+      },
+      {
+        "actionable_nonconvex": 96,
+        "header_loops": 114,
+        "loop_bytes": 137887,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/des6/des6_rem_rem_loop.txt",
+        "loop_sha256": "e8de38e6fea68ad45f4e671d12947a645ddec76ebf3e8e80c6692a8cef588bc8",
+        "mesh_bytes": 932338,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/des6/des6_rem_rem_splitted.obj",
+        "mesh_sha256": "e3679c552236b94cbaa6ceceb8374859afa4b698e12dfc6d010d712e66d02217",
+        "model": "des6"
+      },
+      {
+        "actionable_nonconvex": 38,
+        "header_loops": 38,
+        "loop_bytes": 57167,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/dog/dog_rem_loop.txt",
+        "loop_sha256": "25d9498362cf2796041bcd522259d2845718b78ca0e4fbb42b9a4496ac4d02a2",
+        "mesh_bytes": 555993,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/dog/dog_rem_splitted.obj",
+        "mesh_sha256": "26e6820921fa3f03942414f70039c67298820670f584468dae497d26c9997f0e",
+        "model": "dog"
+      },
+      {
+        "actionable_nonconvex": 81,
+        "header_loops": 287,
+        "loop_bytes": 145633,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/gear/gear_rem_loop.txt",
+        "loop_sha256": "c5f67d74954648188e0f5276d694d23414895e7d3adab98decea1e7462dc95dd",
+        "mesh_bytes": 915234,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/gear/gear_rem_splitted.obj",
+        "mesh_sha256": "ede8608654928a5e5347e19f4e110aa025c195b3ee2de6356c8bfff3097a21bc",
+        "model": "gear"
+      },
+      {
+        "actionable_nonconvex": 61,
+        "header_loops": 61,
+        "loop_bytes": 48885,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/hand/hand_rem_loop.txt",
+        "loop_sha256": "017eab2d81b67a428f4d65a480850bd252672aa23701854eb9498567e7dc062e",
+        "mesh_bytes": 443069,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/hand/hand_rem_splitted.obj",
+        "mesh_sha256": "523d0fa134903a3725e66c6f6d2d4d9cc21e8db2a973cc484ef7084cd3b18e44",
+        "model": "hand"
+      },
+      {
+        "actionable_nonconvex": 88,
+        "header_loops": 136,
+        "loop_bytes": 137415,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/hinge/hinge_rem_loop.txt",
+        "loop_sha256": "f11f6e849edef3a2d9139a29573d03b0563c77c0eec464d58187dd45e8e44414",
+        "mesh_bytes": 1333019,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/hinge/hinge_rem_splitted.obj",
+        "mesh_sha256": "cb4001d3e6cea514299e663c5ffcab3dd507893c6918400960a9766d6aee6acb",
+        "model": "hinge"
+      },
+      {
+        "actionable_nonconvex": 61,
+        "header_loops": 61,
+        "loop_bytes": 50617,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/holes2/holes2_rem_loop.txt",
+        "loop_sha256": "d015530cf997fcb5320250ad0c47ee510c9a5a3d43be524bb0c078936b71ccb6",
+        "mesh_bytes": 481627,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/holes2/holes2_rem_splitted.obj",
+        "mesh_sha256": "bcab9a5ee78727f6b32e5fdc9689a69f5876e59263e83ae5e4c7564f1335899e",
+        "model": "holes2"
+      },
+      {
+        "actionable_nonconvex": 91,
+        "header_loops": 263,
+        "loop_bytes": 254977,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/impeller/impeller_rem_loop.txt",
+        "loop_sha256": "5d4f62c129fc97d766058fcae343a168c3619d6ed9d52430aceb24e5d136c08c",
+        "mesh_bytes": 2022928,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/impeller/impeller_rem_splitted.obj",
+        "mesh_sha256": "9fa905fbcdaa8fc84f4e16f06c12a62ba78bdcf5cbf74d47cde581d0ca419576",
+        "model": "impeller"
+      },
+      {
+        "actionable_nonconvex": 61,
+        "header_loops": 61,
+        "loop_bytes": 88502,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/indorelax/indorelax_rem_loop.txt",
+        "loop_sha256": "200e4008281d7a8a7b9ef24672c1e038e3147c93ee262e6e5c77631d55e8382e",
+        "mesh_bytes": 1371273,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/indorelax/indorelax_rem_splitted.obj",
+        "mesh_sha256": "eade0b44073cf90bdca97585e42c1b5d4b05be8102b953768ee817b61d2d55e6",
+        "model": "indorelax"
+      },
+      {
+        "actionable_nonconvex": 71,
+        "header_loops": 149,
+        "loop_bytes": 187655,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/inlay_dovetail_3/inlay_dovetail_3_rem_rem_loop.txt",
+        "loop_sha256": "80f363a9219f3f08744666fcc75c09be1d9bbe72220c6764ece7d1da9425af68",
+        "mesh_bytes": 1521357,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/inlay_dovetail_3/inlay_dovetail_3_rem_rem_splitted.obj",
+        "mesh_sha256": "b81f39240d6372136fd87a667f6bd543fe3c8cb97565be3be7cb8eb888fb5e73",
+        "model": "inlay_dovetail_3"
+      },
+      {
+        "actionable_nonconvex": 71,
+        "header_loops": 107,
+        "loop_bytes": 110659,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/joint/joint_rem_loop.txt",
+        "loop_sha256": "3db6c46afada057f499af77b593391cf31986c713c0f54182b9c6712ff0f097a",
+        "mesh_bytes": 856341,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/joint/joint_rem_splitted.obj",
+        "mesh_sha256": "df5a4c476b422eb63adcf6eda45a2a369a1c8a3cec5f0a73e97d45dfd930a42e",
+        "model": "joint"
+      },
+      {
+        "actionable_nonconvex": 61,
+        "header_loops": 61,
+        "loop_bytes": 102702,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/kitten/kitten_rem_loop.txt",
+        "loop_sha256": "df9da84e3345937c5e45c01881464116466a3ff0ae0da9bcea506d053766879f",
+        "mesh_bytes": 799045,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/kitten/kitten_rem_splitted.obj",
+        "mesh_sha256": "60685cb8c99499c9a45c975286d1e741f3830ab2edc52370d8c42efd52e305c1",
+        "model": "kitten"
+      },
+      {
+        "actionable_nonconvex": 73,
+        "header_loops": 101,
+        "loop_bytes": 140997,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/knob/knob_rem_loop.txt",
+        "loop_sha256": "84e45090836682ab764230ed928a45074028d861ea00e2d9eb016a89e00b0df7",
+        "mesh_bytes": 1186500,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/knob/knob_rem_splitted.obj",
+        "mesh_sha256": "3ea5becf803eab9c3a7503bf469c54a0e48d7751f49038a94c901f39c76c1e68",
+        "model": "knob"
+      },
+      {
+        "actionable_nonconvex": 60,
+        "header_loops": 60,
+        "loop_bytes": 252355,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/kong/kong_rem_loop.txt",
+        "loop_sha256": "ddbd84688a4566f825dfa657187e2b5e6ca87dc726102bbf30a8054b4fa1873e",
+        "mesh_bytes": 2737611,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/kong/kong_rem_splitted.obj",
+        "mesh_sha256": "04e478c0c84466afc76c30b9de452d8a8f3a256967aa7b3ac11cb1b65362507f",
+        "model": "kong"
+      },
+      {
+        "actionable_nonconvex": 72,
+        "header_loops": 84,
+        "loop_bytes": 78951,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/lever_arm/lever_arm_rem_loop.txt",
+        "loop_sha256": "30cc2c978e339c75df4efef5ed220266872122165f17be689e8c7a10be4ded8f",
+        "mesh_bytes": 661540,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/lever_arm/lever_arm_rem_splitted.obj",
+        "mesh_sha256": "0804800ade771706c72814adc850191a654286247ded324d27179f0d3844e4b2",
+        "model": "lever_arm"
+      },
+      {
+        "actionable_nonconvex": 22,
+        "header_loops": 30,
+        "loop_bytes": 20965,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/mech10/mech10_rem_loop.txt",
+        "loop_sha256": "49f5a9bf3a6aec522c98d00199e3fa575606e049e8a1d9e8c085beb23c088f17",
+        "mesh_bytes": 127275,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/mech10/mech10_rem_splitted.obj",
+        "mesh_sha256": "5ba9ab6236dace9ec1efdfcec3d3f66b77d8266e89b9373a214fb1107612ca2f",
+        "model": "mech10"
+      },
+      {
+        "actionable_nonconvex": 80,
+        "header_loops": 100,
+        "loop_bytes": 109486,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/mechanical02/mechanical02_rem_loop.txt",
+        "loop_sha256": "2bd4542f161dbefd1b5e83d1da4581f20c756ef28fd82bc2cac7340ac27c7070",
+        "mesh_bytes": 807017,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/mechanical02/mechanical02_rem_splitted.obj",
+        "mesh_sha256": "9bd8a1a7ea1d100b2c4fbd2f398796bea71b8a46c34296d6b27f999a53171de0",
+        "model": "mechanical02"
+      },
+      {
+        "actionable_nonconvex": 93,
+        "header_loops": 121,
+        "loop_bytes": 109338,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/mechanical05/mechanical05_rem_loop.txt",
+        "loop_sha256": "db9e2e084dd861a5d837ac8255f8f679988bcb9b479f032a0ffb0ca54031d3ce",
+        "mesh_bytes": 821116,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/mechanical05/mechanical05_rem_splitted.obj",
+        "mesh_sha256": "44f6835e6681e4a6b98e5d2832fe715f492d3b2d5c18b7148bbc6a1882681b07",
+        "model": "mechanical05"
+      },
+      {
+        "actionable_nonconvex": 131,
+        "header_loops": 155,
+        "loop_bytes": 171935,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/mechanical06/mechanical06_rem_loop.txt",
+        "loop_sha256": "556548f28a1e5793fe0472d7e6a9828a4507a29aa9b1af6a0a882ea1648ed04f",
+        "mesh_bytes": 1215514,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/mechanical06/mechanical06_rem_splitted.obj",
+        "mesh_sha256": "b045814fa5e669152aa880311026f51afd7c1696a59bfa753b3ce52c2adadf48",
+        "model": "mechanical06"
+      },
+      {
+        "actionable_nonconvex": 73,
+        "header_loops": 89,
+        "loop_bytes": 58160,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/mechanical08/mechanical08_rem_loop.txt",
+        "loop_sha256": "6b177349e972d42bfbdf99462d15b1b9af19b11b20944d9073e0963462d3803a",
+        "mesh_bytes": 294038,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/mechanical08/mechanical08_rem_splitted.obj",
+        "mesh_sha256": "1212cbf1a843af55495ea49af59ff1ac140b80a9aa44556596a8a8236bc7c383",
+        "model": "mechanical08"
+      },
+      {
+        "actionable_nonconvex": 71,
+        "header_loops": 87,
+        "loop_bytes": 69671,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/metatron/metatron_rem_rem_loop.txt",
+        "loop_sha256": "af50cc5f9691aeea88be6e1596cda45108b790730cf62f43be44ce2b9e224e1d",
+        "mesh_bytes": 580607,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/metatron/metatron_rem_rem_splitted.obj",
+        "mesh_sha256": "408433b7518e4a952a276b8e76480593e6bac87ce80c3755eee920ef1938fec6",
+        "model": "metatron"
+      },
+      {
+        "actionable_nonconvex": 159,
+        "header_loops": 331,
+        "loop_bytes": 199091,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/motor_tail/motor_tail_rem_loop.txt",
+        "loop_sha256": "fa61bddb79088018207d0b91b65a821271bbaf3c039263c5b2759bf80d7e2f8b",
+        "mesh_bytes": 1479931,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/motor_tail/motor_tail_rem_splitted.obj",
+        "mesh_sha256": "276a9c07126cb282bfda140735b2d7de79daba915705dad7f528e1e5fd272955",
+        "model": "motor_tail"
+      },
+      {
+        "actionable_nonconvex": 46,
+        "header_loops": 64,
+        "loop_bytes": 83359,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/prism/prism_rem_loop.txt",
+        "loop_sha256": "66dfc33d2e0eb9ae2872527bb909fc472f506ca247907a17195035fe2a43f48d",
+        "mesh_bytes": 476824,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/prism/prism_rem_splitted.obj",
+        "mesh_sha256": "2f704843b33c81a4c360575fa9bd3861c23c26bdab0ffe7ec8a7259ca548c808",
+        "model": "prism"
+      },
+      {
+        "actionable_nonconvex": 60,
+        "header_loops": 60,
+        "loop_bytes": 152495,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/rabbit/rabbit_rem_loop.txt",
+        "loop_sha256": "09b5cc058beccb22c4abae8c22b735bfb306b8a47664260f7114efce1a97b21f",
+        "mesh_bytes": 1444392,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/rabbit/rabbit_rem_splitted.obj",
+        "mesh_sha256": "040b1ebc3fa21816d5f0a927f95c1705b44be7d885eaac4c7f629ea6023941d6",
+        "model": "rabbit"
+      },
+      {
+        "actionable_nonconvex": 61,
+        "header_loops": 61,
+        "loop_bytes": 110605,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/teapot/teapot_rem_loop.txt",
+        "loop_sha256": "781f7aef16aa56029b4782d28e0fe4f9f7a3687d6b70b68e27952d7a904f0bc0",
+        "mesh_bytes": 1125120,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/teapot/teapot_rem_splitted.obj",
+        "mesh_sha256": "99b8a82a106295e31c62ac8d2bb9fe920f69c21afe83781e5a28e2af357c113c",
+        "model": "teapot"
+      },
+      {
+        "actionable_nonconvex": 60,
+        "header_loops": 60,
+        "loop_bytes": 98438,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/torque/torque_rem_loop.txt",
+        "loop_sha256": "45cbe3bdeb8fbedf7b61772c63f8fc735dc4a9a9c6b661cc70bc2132f6338d88",
+        "mesh_bytes": 654771,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/torque/torque_rem_splitted.obj",
+        "mesh_sha256": "51131b6f8b989e8329af1be72d5fedbfc1551c0f4d46152a79c0c889ff8d5040",
+        "model": "torque"
+      },
+      {
+        "actionable_nonconvex": 57,
+        "header_loops": 57,
+        "loop_bytes": 136016,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/torque1/torque1_rem_loop.txt",
+        "loop_sha256": "3c0bf12d3263c835e62d0ef635a287354bd488b821c2c59c3d2e91b519f74741",
+        "mesh_bytes": 950925,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/torque1/torque1_rem_splitted.obj",
+        "mesh_sha256": "94edc526ec394f5408707e2f4027b0652d6b16727bb7b8891195af4e464b9c90",
+        "model": "torque1"
+      },
+      {
+        "actionable_nonconvex": 61,
+        "header_loops": 61,
+        "loop_bytes": 162811,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/trebol/trebol_rem_rem_loop.txt",
+        "loop_sha256": "8e0e431e6444ae5a07e01de1f087a7a03c922b6b0323164cca6e3ffa10b9b800",
+        "mesh_bytes": 1430877,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/trebol/trebol_rem_rem_splitted.obj",
+        "mesh_sha256": "0afc1ca85816e7026adc091115e50c91d166b5f2e01e3e199b36e446c97722b4",
+        "model": "trebol"
+      },
+      {
+        "actionable_nonconvex": 64,
+        "header_loops": 112,
+        "loop_bytes": 149678,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/tris_closed/tris_closed_rem_loop.txt",
+        "loop_sha256": "8fb6395396fe9ea8f4a1769240887f99ede2b8352e7a618f7ba77e5eaa7d28e7",
+        "mesh_bytes": 823173,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/tris_closed/tris_closed_rem_splitted.obj",
+        "mesh_sha256": "e90b12593d9a61b151eb13c4cc446d5cb0146d38f7a7398952238c097a24bb42",
+        "model": "tris_closed"
+      },
+      {
+        "actionable_nonconvex": 70,
+        "header_loops": 130,
+        "loop_bytes": 95236,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/tris_open/tris_open_rem_loop.txt",
+        "loop_sha256": "72b82842349c3f364c24f4daf8bbee98c46ddf98f03e2c2192de7dfab5db4faa",
+        "mesh_bytes": 517232,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/tris_open/tris_open_rem_splitted.obj",
+        "mesh_sha256": "f1c660508d6e8ceab9e7018c38e2689116c78c847df3ef756003823a7702485b",
+        "model": "tris_open"
+      },
+      {
+        "actionable_nonconvex": 71,
+        "header_loops": 81,
+        "loop_bytes": 117375,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/ujoint/ujoint_rem_loop.txt",
+        "loop_sha256": "f06dcfe884a77d5ebe9a8ea22761f63be67175e0cdb9585508df7520fefdb032",
+        "mesh_bytes": 1000589,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/ujoint/ujoint_rem_splitted.obj",
+        "mesh_sha256": "f03a9e8d1e2476a2ed14c0d7ddc5a5a7eeb56e0ebc095d456aa75a0a9187fe6f",
+        "model": "ujoint"
+      },
+      {
+        "actionable_nonconvex": 52,
+        "header_loops": 56,
+        "loop_bytes": 84959,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/wave/wave_rem_rem_loop.txt",
+        "loop_sha256": "04db8e200428a282cca6f776ba04d2d8c3cda4c93f53f54ba158058920faf43c",
+        "mesh_bytes": 493185,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/wave/wave_rem_rem_splitted.obj",
+        "mesh_sha256": "e3d4fdaa77fd5ab972dc4aff5660013f4496b7369b6c86bdb98cccf1db75933b",
+        "model": "wave"
+      },
+      {
+        "actionable_nonconvex": 61,
+        "header_loops": 79,
+        "loop_bytes": 124044,
+        "loop_path": "/home/yjk/codes/LoopyCuts/test_data/wedge/wedge_rem_loop.txt",
+        "loop_sha256": "dc05302c9f2e14016a5b18169bd482ad11dd8e81f560bb9785ce01f116a82402",
+        "mesh_bytes": 781302,
+        "mesh_path": "/home/yjk/codes/LoopyCuts/test_data/wedge/wedge_rem_splitted.obj",
+        "mesh_sha256": "433025a8b9063a7d68f72a9de97b8d4f3c917d726756ac99ac18d2262258a64e",
+        "model": "wedge"
+      }
+    ],
+    "models": 49,
+    "split": "train"
+  }
+}
