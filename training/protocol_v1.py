@@ -696,6 +696,75 @@ PROJECT_STAGE2_EXPO_REPLAY_CAPACITY = (
 
 
 # ================================================================
+# STAGE-II FORMAL ENVIRONMENT-SAMPLING SEMANTICS
+#
+# Zhang et al. 2025 state that in each training iteration a CAD
+# model is sampled from the training dataset and the agent interacts
+# with that model for one episode.
+#
+# LoopyCuts adaptation:
+#
+#   * only Dataset Split V2 split=train is eligible;
+#   * one model is sampled uniformly for each new episode;
+#   * sampling is controlled by the formal run seed;
+#   * Dev and Blind models are never eligible;
+#   * an episode follows the native LoopyCuts terminal semantics;
+#   * the global Stage-II budget remains exactly 25,000 newly
+#     collected transitions.
+# ================================================================
+
+PROJECT_STAGE2_MODEL_SPLIT = (
+    "train"
+)
+
+PROJECT_STAGE2_MODEL_COUNT = 49
+
+PROJECT_STAGE2_MODEL_SAMPLING = (
+    "UNIFORM_IID_PER_EPISODE"
+)
+
+PROJECT_STAGE2_MODEL_SAMPLING_RNG = (
+    "NUMPY_GENERATOR_SEEDED_BY_FORMAL_RUN_SEED"
+)
+
+PROJECT_STAGE2_EPISODE_MODEL_SEMANTICS = (
+    "ONE_SAMPLED_TRAIN_MODEL_PER_ENVIRONMENT_EPISODE"
+)
+
+PROJECT_STAGE2_DEV_ALLOWED = False
+
+PROJECT_STAGE2_BLIND_ALLOWED = False
+
+
+# The Stage-II optimization cadence was already frozen to one
+# gradient update per newly collected environment transition.
+#
+# Operationally the trainer collects an episode and then performs
+# exactly that episode's number of updates.  This preserves complete
+# LoopyCuts episodes during normal training while implementing the
+# frozen transition-normalized 1.0 update ratio.
+PROJECT_STAGE2_UPDATE_SCHEDULING = (
+    "AFTER_EACH_COMPLETED_EPISODE"
+)
+
+PROJECT_STAGE2_UPDATES_PER_COMPLETED_EPISODE = (
+    "EQUAL_TO_NEWLY_COLLECTED_TRANSITIONS_IN_THAT_EPISODE"
+)
+
+
+# At the exact global 25,000-transition boundary the trainer must
+# not manufacture a LoopyCuts terminal state or terminal reward.
+#
+# If the boundary occurs during an episode, collection simply stops
+# after the 25,000th real transition.  The final replay prefix remains
+# valid for n_step=1 training, but the budget boundary itself is not
+# represented as terminated/truncated in the MDP.
+PROJECT_STAGE2_BUDGET_BOUNDARY_POLICY = (
+    "STOP_AT_EXACT_TRANSITION_BUDGET_WITHOUT_SYNTHETIC_TERMINAL_OR_TRUNCATION"
+)
+
+
+# ================================================================
 # FORMAL-TRAINING GATE
 # ================================================================
 

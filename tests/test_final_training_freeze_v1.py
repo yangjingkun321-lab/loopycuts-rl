@@ -38,6 +38,16 @@ from training.protocol_v1 import (
     PROJECT_STAGE2_EXPLORATION_EPSILON,
     PROJECT_STAGE2_SAMPLES_PER_BUFFER,
     PROJECT_STAGE2_EXPO_REPLAY_CAPACITY,
+    PROJECT_STAGE2_MODEL_SPLIT,
+    PROJECT_STAGE2_MODEL_COUNT,
+    PROJECT_STAGE2_MODEL_SAMPLING,
+    PROJECT_STAGE2_MODEL_SAMPLING_RNG,
+    PROJECT_STAGE2_EPISODE_MODEL_SEMANTICS,
+    PROJECT_STAGE2_DEV_ALLOWED,
+    PROJECT_STAGE2_BLIND_ALLOWED,
+    PROJECT_STAGE2_UPDATE_SCHEDULING,
+    PROJECT_STAGE2_UPDATES_PER_COMPLETED_EPISODE,
+    PROJECT_STAGE2_BUDGET_BOUNDARY_POLICY,
     assert_formal_training_ready,
     formal_training_ready,
 )
@@ -215,6 +225,64 @@ def main():
         PROJECT_STAGE2_EXPO_REPLAY_CAPACITY
         ==
         25_000
+    )
+
+    assert (
+        PROJECT_STAGE2_MODEL_SPLIT
+        ==
+        "train"
+    )
+
+    assert (
+        PROJECT_STAGE2_MODEL_COUNT
+        ==
+        49
+    )
+
+    assert (
+        PROJECT_STAGE2_MODEL_SAMPLING
+        ==
+        "UNIFORM_IID_PER_EPISODE"
+    )
+
+    assert (
+        PROJECT_STAGE2_MODEL_SAMPLING_RNG
+        ==
+        "NUMPY_GENERATOR_SEEDED_BY_FORMAL_RUN_SEED"
+    )
+
+    assert (
+        PROJECT_STAGE2_EPISODE_MODEL_SEMANTICS
+        ==
+        "ONE_SAMPLED_TRAIN_MODEL_PER_ENVIRONMENT_EPISODE"
+    )
+
+    assert (
+        PROJECT_STAGE2_DEV_ALLOWED
+        is False
+    )
+
+    assert (
+        PROJECT_STAGE2_BLIND_ALLOWED
+        is False
+    )
+
+    assert (
+        PROJECT_STAGE2_UPDATE_SCHEDULING
+        ==
+        "AFTER_EACH_COMPLETED_EPISODE"
+    )
+
+    assert (
+        PROJECT_STAGE2_UPDATES_PER_COMPLETED_EPISODE
+        ==
+        "EQUAL_TO_NEWLY_COLLECTED_TRANSITIONS_IN_THAT_EPISODE"
+    )
+
+    assert (
+        PROJECT_STAGE2_BUDGET_BOUNDARY_POLICY
+        ==
+        "STOP_AT_EXACT_TRANSITION_BUDGET_WITHOUT_SYNTHETIC_TERMINAL_OR_TRUNCATION"
     )
 
     assert (
