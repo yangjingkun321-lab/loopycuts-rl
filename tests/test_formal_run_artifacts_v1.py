@@ -276,6 +276,37 @@ def main():
         )
 
 
+        # elapsed_seconds is telemetry only.  A deterministic Stage-I
+        # replay may legitimately have a different wall-clock runtime.
+        stage1_different_wallclock = copy.deepcopy(
+            stage1_result
+        )
+
+        stage1_different_wallclock[
+            "elapsed_seconds"
+        ] = 12345.0
+
+        wallclock_replay = (
+            record_stage1_complete(
+                run_directory=
+                    run_directory,
+
+                core=
+                    core,
+
+                stage1_result=
+                    stage1_different_wallclock,
+            )
+        )
+
+        assert (
+            wallclock_replay[
+                "replayed"
+            ]
+            is True
+        )
+
+
         # ============================================================
         # Episode 1.
         # ============================================================

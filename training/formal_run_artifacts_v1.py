@@ -1025,16 +1025,37 @@ def record_stage1_complete(
         )
 
     if existing:
-        if (
+        existing_payload = copy.deepcopy(
             existing[
                 0
             ][
                 "payload"
             ]
+        )
+
+        replay_payload = to_jsonable(
+            payload
+        )
+
+        # elapsed_seconds is runtime telemetry, not part of the
+        # deterministic training trajectory.  A Stage-I replay after
+        # an interruption may legitimately take a different wall-clock
+        # duration while producing exactly the same model/optimizer/RNG
+        # state.
+        existing_payload.pop(
+            "elapsed_seconds",
+            None,
+        )
+
+        replay_payload.pop(
+            "elapsed_seconds",
+            None,
+        )
+
+        if (
+            existing_payload
             !=
-            to_jsonable(
-                payload
-            )
+            replay_payload
         ):
             raise FormalRunArtifactError(
                 "Replayed Stage-I completion differs from existing artifact"

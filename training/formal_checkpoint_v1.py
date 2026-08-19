@@ -652,11 +652,31 @@ def assert_checkpoint_boundary(
             "Stage-II checkpoint exceeds exact environment budget"
         )
 
-    unfinished = np.asarray(
-        stage2_state
-        .expo_buffer
-        .unfinished_index()
-    )
+    # Tianshou ReplayBuffer.unfinished_index() assumes that the
+    # replay metadata already contains a "done" field.  A freshly
+    # constructed empty ReplayBuffer has no transition schema yet, so
+    # calling unfinished_index() at size 0 raises AttributeError.
+    #
+    # Semantically an empty D_expo cannot contain an unfinished
+    # episode, therefore size 0 is directly an episode-safe boundary.
+    if (
+        len(
+            stage2_state.expo_buffer
+        )
+        ==
+        0
+    ):
+        unfinished = np.asarray(
+            [],
+            dtype=np.int64,
+        )
+
+    else:
+        unfinished = np.asarray(
+            stage2_state
+            .expo_buffer
+            .unfinished_index()
+        )
 
     # Before the final exact budget, checkpoint only at a real native
     # LoopyCuts episode boundary. We deliberately never serialize a
