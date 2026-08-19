@@ -144,6 +144,8 @@ def compute_train49_inputs(
         )
         !=
         PROJECT_STAGE2_MODEL_COUNT
+        or
+        PROJECT_STAGE2_MODEL_COUNT
         !=
         49
     ):
@@ -552,6 +554,8 @@ def assert_formal_training_input_provenance(
             ]
         )
         !=
+        PROJECT_STAGE2_MODEL_COUNT
+        or
         PROJECT_STAGE2_MODEL_COUNT
         !=
         49

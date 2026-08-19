@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 import sys
 import tempfile
@@ -24,6 +25,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from training.formal_training_input_provenance_v1 import (
     FormalTrainingInputProvenanceError,
     assert_formal_training_input_provenance,
+    compute_train49_inputs,
 )
 
 from training.protocol_v1 import (
@@ -203,6 +205,100 @@ def main():
             )
 
 
+    # ------------------------------------------------------------
+    # Negative test:
+    # a dataset manifest containing only 48 Train models must be
+    # rejected by the explicit model-count guard.
+    # ------------------------------------------------------------
+
+    with DATASET.open(
+        newline="",
+        encoding="utf-8",
+    ) as f:
+        dataset_rows = list(
+            csv.DictReader(f)
+        )
+
+        fieldnames = list(
+            dataset_rows[
+                0
+            ].keys()
+        )
+
+    removed = False
+    reduced_rows = []
+
+    for row in dataset_rows:
+        if (
+            not removed
+            and
+            row[
+                "split"
+            ]
+            ==
+            "train"
+        ):
+            removed = True
+            continue
+
+        reduced_rows.append(
+            row
+        )
+
+    assert removed
+
+    assert (
+        sum(
+            row[
+                "split"
+            ]
+            ==
+            "train"
+            for row in reduced_rows
+        )
+        ==
+        48
+    )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        reduced_manifest = (
+            Path(tmp)
+            /
+            "dataset_split_48_train.csv"
+        )
+
+        with reduced_manifest.open(
+            "w",
+            newline="",
+            encoding="utf-8",
+        ) as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=
+                    fieldnames,
+            )
+
+            writer.writeheader()
+
+            writer.writerows(
+                reduced_rows
+            )
+
+        try:
+            compute_train49_inputs(
+                dataset_manifest=
+                    reduced_manifest
+            )
+
+        except FormalTrainingInputProvenanceError:
+            pass
+
+        else:
+            raise AssertionError(
+                "48-model Train split was not rejected"
+            )
+
+
     print(
         "formal provenance SHA256 :",
         result[
@@ -237,6 +333,10 @@ def main():
 
     print(
         "PASS: Train49 provenance mismatch is rejected"
+    )
+
+    print(
+        "PASS: Train48 model-count mismatch is rejected"
     )
 
 
