@@ -56,6 +56,18 @@ def make_episode(
         "model":
             "Plate3",
 
+        "model_complexity_stratum":
+            0,
+
+        "curriculum_phase":
+            "WARMUP",
+
+        "eligible_model_count":
+            39,
+
+        "environment_steps_before":
+            episode_index - 1,
+
         "mesh_file":
             "/tmp/mesh.obj",
 
@@ -151,7 +163,7 @@ def main():
         assert (
             FORMAL_RUN_ARTIFACTS_VERSION
             ==
-            "loopycuts_formal_run_artifacts_v1"
+            "loopycuts_formal_run_artifacts_v2_curriculum"
         )
 
         manifest = (
@@ -203,6 +215,56 @@ def main():
             ]
             ==
             25_000
+        )
+
+        assert (
+            manifest[
+                "formal_training"
+            ][
+                "stage2_curriculum_version"
+            ]
+            ==
+            "complexity_curriculum_v1"
+        )
+
+        assert (
+            manifest[
+                "formal_training"
+            ][
+                "stage2_curriculum_warmup_env_steps"
+            ]
+            ==
+            5_000
+        )
+
+        assert (
+            manifest[
+                "formal_training"
+            ][
+                "stage2_curriculum_warmup_max_stratum"
+            ]
+            ==
+            7
+        )
+
+        assert (
+            manifest[
+                "formal_training"
+            ][
+                "stage2_curriculum_warmup_model_count"
+            ]
+            ==
+            39
+        )
+
+        assert (
+            manifest[
+                "formal_training"
+            ][
+                "stage2_curriculum_full_model_count"
+            ]
+            ==
+            49
         )
 
 
@@ -634,7 +696,7 @@ def main():
 
 
         print("=" * 100)
-        print("FORMAL RUN ARTIFACTS V1")
+        print("FORMAL RUN ARTIFACTS V2 CURRICULUM")
         print("=" * 100)
 
         print(

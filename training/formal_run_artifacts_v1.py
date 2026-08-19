@@ -53,27 +53,35 @@ from training.protocol_v1 import (
 
     PROJECT_STAGE2_MODEL_COUNT,
     PROJECT_STAGE2_MODEL_SAMPLING,
+
+    PROJECT_STAGE2_CURRICULUM_VERSION,
+    PROJECT_STAGE2_CURRICULUM_WARMUP_ENV_STEPS,
+    PROJECT_STAGE2_CURRICULUM_WARMUP_MAX_STRATUM,
+    PROJECT_STAGE2_CURRICULUM_WARMUP_MODEL_COUNT,
+    PROJECT_STAGE2_CURRICULUM_FULL_MODEL_COUNT,
+    PROJECT_STAGE2_CURRICULUM_PHASE_SELECTION,
+    PROJECT_STAGE2_CURRICULUM_BOUNDARY_POLICY,
 )
 
 
 FORMAL_RUN_ARTIFACTS_VERSION = (
-    "loopycuts_formal_run_artifacts_v1"
+    "loopycuts_formal_run_artifacts_v2_curriculum"
 )
 
 FORMAL_RUN_MANIFEST_SCHEMA = (
-    "loopycuts_formal_run_manifest_v1"
+    "loopycuts_formal_run_manifest_v2_curriculum"
 )
 
 FORMAL_RUN_EVENT_SCHEMA = (
-    "loopycuts_formal_run_event_v1"
+    "loopycuts_formal_run_event_v2_curriculum"
 )
 
 RUN_MANIFEST_FILENAME = (
-    "run_manifest_v1.json"
+    "run_manifest_v2.json"
 )
 
 EVENT_LOG_FILENAME = (
-    "events_v1.jsonl"
+    "events_v2.jsonl"
 )
 
 
@@ -428,6 +436,35 @@ def build_formal_run_manifest(
 
             "stage2_model_sampling":
                 PROJECT_STAGE2_MODEL_SAMPLING,
+
+            "stage2_curriculum_version":
+                PROJECT_STAGE2_CURRICULUM_VERSION,
+
+            "stage2_curriculum_warmup_env_steps":
+                int(
+                    PROJECT_STAGE2_CURRICULUM_WARMUP_ENV_STEPS
+                ),
+
+            "stage2_curriculum_warmup_max_stratum":
+                int(
+                    PROJECT_STAGE2_CURRICULUM_WARMUP_MAX_STRATUM
+                ),
+
+            "stage2_curriculum_warmup_model_count":
+                int(
+                    PROJECT_STAGE2_CURRICULUM_WARMUP_MODEL_COUNT
+                ),
+
+            "stage2_curriculum_full_model_count":
+                int(
+                    PROJECT_STAGE2_CURRICULUM_FULL_MODEL_COUNT
+                ),
+
+            "stage2_curriculum_phase_selection":
+                PROJECT_STAGE2_CURRICULUM_PHASE_SELECTION,
+
+            "stage2_curriculum_boundary_policy":
+                PROJECT_STAGE2_CURRICULUM_BOUNDARY_POLICY,
 
             "stage2_epsilon":
                 float(

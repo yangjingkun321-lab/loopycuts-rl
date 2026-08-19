@@ -29,6 +29,8 @@ from training.formal_training_v1 import (
     build_formal_stage2_vector_env,
     collect_formal_stage2_model_episode,
     enter_formal_stage2,
+    eligible_formal_stage2_models,
+    formal_stage2_curriculum_phase,
     prepare_formal_stage2_state,
     prepare_formal_training_core,
     sample_formal_stage2_model,
@@ -39,6 +41,10 @@ from training.protocol_v1 import (
     PROJECT_STAGE1_ACTUAL_SAMPLED_DEMO_TRANSITIONS,
     PROJECT_STAGE2_EXPO_REPLAY_CAPACITY,
     PROJECT_STAGE2_SAMPLES_PER_BUFFER,
+    PROJECT_STAGE2_CURRICULUM_WARMUP_ENV_STEPS,
+    PROJECT_STAGE2_CURRICULUM_WARMUP_MAX_STRATUM,
+    PROJECT_STAGE2_CURRICULUM_WARMUP_MODEL_COUNT,
+    PROJECT_STAGE2_CURRICULUM_FULL_MODEL_COUNT,
 )
 
 
@@ -74,7 +80,7 @@ def main():
     assert (
         FORMAL_STAGE2_ONLINE_VERSION
         ==
-        "loopycuts_formal_stage2_online_v1"
+        "loopycuts_formal_stage2_online_v2_curriculum"
     )
 
     assert (
@@ -103,12 +109,13 @@ def main():
 
 
     # ============================================================
-    # Frozen uniform-IID sampler regression.
+    # Frozen complexity-curriculum sampler regression.
     #
-    # Train49 is sorted by model before indexing.
-    # NumPy Generator seed 42 has first index 4, which is "blade".
+    # At env=0 the eligible pool is Train39 (strata 0-7), sorted by
+    # model.  NumPy Generator seed42 samples index 3 from that pool,
+    # which remains "blade".
     #
-    # This sampler RNG is independent of policy exploration RNG.
+    # This sampler RNG remains independent of policy exploration RNG.
     # ============================================================
 
     first_sample = (
@@ -127,6 +134,137 @@ def main():
         ==
         "blade"
     )
+
+    assert (
+        first_sample.complexity_stratum
+        ==
+        4
+    )
+
+
+    # ============================================================
+    # Curriculum pool and exact boundary regression.
+    # ============================================================
+
+    assert (
+        PROJECT_STAGE2_CURRICULUM_WARMUP_ENV_STEPS
+        ==
+        5_000
+    )
+
+    assert (
+        PROJECT_STAGE2_CURRICULUM_WARMUP_MAX_STRATUM
+        ==
+        7
+    )
+
+    assert (
+        formal_stage2_curriculum_phase(
+            state
+        )
+        ==
+        "WARMUP"
+    )
+
+    phase, warmup_models = (
+        eligible_formal_stage2_models(
+            state
+        )
+    )
+
+    assert phase == "WARMUP"
+
+    assert (
+        len(
+            warmup_models
+        )
+        ==
+        PROJECT_STAGE2_CURRICULUM_WARMUP_MODEL_COUNT
+        ==
+        39
+    )
+
+    assert all(
+        model.complexity_stratum <= 7
+        for model in warmup_models
+    )
+
+    assert (
+        "motor_tail"
+        not in
+        {
+            model.model
+            for model in warmup_models
+        }
+    )
+
+
+    # env=4999 is still WARMUP.
+    state.total_environment_steps = 4_999
+
+    assert (
+        formal_stage2_curriculum_phase(
+            state
+        )
+        ==
+        "WARMUP"
+    )
+
+    phase_4999, pool_4999 = (
+        eligible_formal_stage2_models(
+            state
+        )
+    )
+
+    assert phase_4999 == "WARMUP"
+    assert len(pool_4999) == 39
+
+
+    # env=5000 switches the NEXT episode to FULL.
+    state.total_environment_steps = 5_000
+
+    assert (
+        formal_stage2_curriculum_phase(
+            state
+        )
+        ==
+        "FULL"
+    )
+
+    phase_5000, pool_5000 = (
+        eligible_formal_stage2_models(
+            state
+        )
+    )
+
+    assert phase_5000 == "FULL"
+
+    assert (
+        len(
+            pool_5000
+        )
+        ==
+        PROJECT_STAGE2_CURRICULUM_FULL_MODEL_COUNT
+        ==
+        49
+    )
+
+    motor_tail = next(
+        model
+        for model in pool_5000
+        if model.model == "motor_tail"
+    )
+
+    assert (
+        motor_tail.complexity_stratum
+        ==
+        9
+    )
+
+
+    # Restore the untouched Stage-II collection counter before the
+    # real Plate3 integration episode.
+    state.total_environment_steps = 0
 
 
     # ============================================================
@@ -228,6 +366,38 @@ def main():
         ]
         ==
         "Plate3"
+    )
+
+    assert (
+        record[
+            "model_complexity_stratum"
+        ]
+        ==
+        0
+    )
+
+    assert (
+        record[
+            "curriculum_phase"
+        ]
+        ==
+        "WARMUP"
+    )
+
+    assert (
+        record[
+            "eligible_model_count"
+        ]
+        ==
+        39
+    )
+
+    assert (
+        record[
+            "environment_steps_before"
+        ]
+        ==
+        0
     )
 
     assert (
@@ -437,7 +607,7 @@ def main():
 
     print()
     print(
-        "PASS: seed42 formal uniform-IID Train49 sampler is deterministic"
+        "PASS: seed42 Stage-II curriculum Train39 sampler is deterministic"
     )
 
     print(

@@ -126,6 +126,18 @@ from training.protocol_v1 import (
     PROJECT_STAGE2_MODEL_COUNT,
     PROJECT_STAGE2_MODEL_SAMPLING,
     PROJECT_STAGE2_MODEL_SAMPLING_RNG,
+
+    PROJECT_STAGE2_CURRICULUM_VERSION,
+    PROJECT_STAGE2_CURRICULUM_WARMUP_ENV_STEPS,
+    PROJECT_STAGE2_CURRICULUM_WARMUP_MAX_STRATUM,
+    PROJECT_STAGE2_CURRICULUM_WARMUP_MODEL_COUNT,
+    PROJECT_STAGE2_CURRICULUM_FULL_MODEL_COUNT,
+    PROJECT_STAGE2_CURRICULUM_WARMUP_POOL,
+    PROJECT_STAGE2_CURRICULUM_FULL_POOL,
+    PROJECT_STAGE2_CURRICULUM_PHASE_SELECTION,
+    PROJECT_STAGE2_CURRICULUM_BOUNDARY_POLICY,
+    PROJECT_STAGE2_CURRICULUM_SAMPLING_WITHIN_POOL,
+
     PROJECT_STAGE2_DEV_ALLOWED,
     PROJECT_STAGE2_BLIND_ALLOWED,
 
@@ -1169,7 +1181,7 @@ def enter_formal_stage2(
 # ======================================================================
 
 FORMAL_STAGE2_ONLINE_VERSION = (
-    "loopycuts_formal_stage2_online_v1"
+    "loopycuts_formal_stage2_online_v2_curriculum"
 )
 
 
@@ -1184,6 +1196,8 @@ class FormalStage2ModelV1:
 
     header_loops: int
     actionable_nonconvex: int
+
+    complexity_stratum: int
 
 
 @dataclass
@@ -1234,10 +1248,10 @@ def assert_formal_stage2_protocol():
     if (
         PROJECT_STAGE2_MODEL_SAMPLING
         !=
-        "UNIFORM_IID_PER_EPISODE"
+        "COMPLEXITY_CURRICULUM_UNIFORM_IID_PER_EPISODE"
     ):
         raise FormalTrainingCoreError(
-            "Unexpected formal model-sampling semantics"
+            "Unexpected formal curriculum model-sampling semantics"
         )
 
     if (
@@ -1247,6 +1261,100 @@ def assert_formal_stage2_protocol():
     ):
         raise FormalTrainingCoreError(
             "Unexpected formal model-sampling RNG semantics"
+        )
+
+    if (
+        PROJECT_STAGE2_CURRICULUM_VERSION
+        !=
+        "complexity_curriculum_v1"
+    ):
+        raise FormalTrainingCoreError(
+            "Unexpected Stage-II curriculum version"
+        )
+
+    if (
+        PROJECT_STAGE2_CURRICULUM_WARMUP_ENV_STEPS
+        !=
+        5_000
+    ):
+        raise FormalTrainingCoreError(
+            "Stage-II curriculum warmup boundary must be 5000"
+        )
+
+    if (
+        PROJECT_STAGE2_CURRICULUM_WARMUP_MAX_STRATUM
+        !=
+        7
+    ):
+        raise FormalTrainingCoreError(
+            "Stage-II curriculum warmup max stratum must be 7"
+        )
+
+    if (
+        PROJECT_STAGE2_CURRICULUM_WARMUP_MODEL_COUNT
+        !=
+        39
+    ):
+        raise FormalTrainingCoreError(
+            "Stage-II curriculum warmup model count must be 39"
+        )
+
+    if (
+        PROJECT_STAGE2_CURRICULUM_FULL_MODEL_COUNT
+        !=
+        PROJECT_STAGE2_MODEL_COUNT
+        or
+        PROJECT_STAGE2_CURRICULUM_FULL_MODEL_COUNT
+        !=
+        49
+    ):
+        raise FormalTrainingCoreError(
+            "Stage-II curriculum full model count must be 49"
+        )
+
+    if (
+        PROJECT_STAGE2_CURRICULUM_WARMUP_POOL
+        !=
+        "TRAIN_MODELS_WITH_COMPLEXITY_STRATUM_LE_7"
+    ):
+        raise FormalTrainingCoreError(
+            "Unexpected Stage-II curriculum warmup-pool semantics"
+        )
+
+    if (
+        PROJECT_STAGE2_CURRICULUM_FULL_POOL
+        !=
+        "ALL_TRAIN49"
+    ):
+        raise FormalTrainingCoreError(
+            "Unexpected Stage-II curriculum full-pool semantics"
+        )
+
+    if (
+        PROJECT_STAGE2_CURRICULUM_PHASE_SELECTION
+        !=
+        "AT_EPISODE_START_FROM_TOTAL_ENVIRONMENT_STEPS"
+    ):
+        raise FormalTrainingCoreError(
+            "Unexpected Stage-II curriculum phase-selection semantics"
+        )
+
+    if (
+        PROJECT_STAGE2_CURRICULUM_BOUNDARY_POLICY
+        !=
+        "NO_MID_EPISODE_PHASE_SWITCH"
+    ):
+        raise FormalTrainingCoreError(
+            "Unexpected Stage-II curriculum boundary semantics"
+        )
+
+    if (
+        PROJECT_STAGE2_CURRICULUM_SAMPLING_WITHIN_POOL
+        !=
+        "UNIFORM_IID_PER_EPISODE"
+    ):
+        raise FormalTrainingCoreError(
+            "Unexpected within-pool curriculum sampling semantics"
         )
 
     if (
@@ -1441,6 +1549,13 @@ def load_formal_stage2_models(
                             "actionable_nonconvex"
                         ]
                     ),
+
+                complexity_stratum=
+                    int(
+                        row[
+                            "complexity_stratum"
+                        ]
+                    ),
             )
         )
 
@@ -1536,7 +1651,38 @@ def prepare_formal_stage2_state(
     )
 
 
-def sample_formal_stage2_model(
+def formal_stage2_curriculum_phase(
+    state: FormalStage2StateV1,
+):
+    """
+    Resolve the curriculum phase at the START of a new episode.
+
+    No phase transition is performed during an episode.  Therefore
+    an episode sampled while total_environment_steps < 5000 remains
+    a WARMUP episode even if that episode crosses the 5000-transition
+    boundary.
+    """
+
+    environment_steps = int(
+        state.total_environment_steps
+    )
+
+    if environment_steps < 0:
+        raise FormalTrainingCoreError(
+            "Stage-II environment-step counter cannot be negative"
+        )
+
+    if (
+        environment_steps
+        <
+        PROJECT_STAGE2_CURRICULUM_WARMUP_ENV_STEPS
+    ):
+        return "WARMUP"
+
+    return "FULL"
+
+
+def eligible_formal_stage2_models(
     state: FormalStage2StateV1,
 ):
     if (
@@ -1551,19 +1697,114 @@ def sample_formal_stage2_model(
         49
     ):
         raise FormalTrainingCoreError(
-            "Formal Stage-II sampling model count mismatch"
+            "Formal Stage-II model count mismatch"
         )
 
+    phase = (
+        formal_stage2_curriculum_phase(
+            state
+        )
+    )
+
+    if phase == "WARMUP":
+        candidates = tuple(
+            model
+            for model in state.models
+            if (
+                model.complexity_stratum
+                <=
+                PROJECT_STAGE2_CURRICULUM_WARMUP_MAX_STRATUM
+            )
+        )
+
+        if (
+            len(
+                candidates
+            )
+            !=
+            PROJECT_STAGE2_CURRICULUM_WARMUP_MODEL_COUNT
+            or
+            len(
+                candidates
+            )
+            !=
+            39
+        ):
+            raise FormalTrainingCoreError(
+                "Formal Stage-II warmup pool must contain exactly 39 models"
+            )
+
+        if any(
+            model.complexity_stratum > 7
+            for model in candidates
+        ):
+            raise FormalTrainingCoreError(
+                "High-complexity model leaked into Stage-II warmup pool"
+            )
+
+    elif phase == "FULL":
+        candidates = tuple(
+            state.models
+        )
+
+        if (
+            len(
+                candidates
+            )
+            !=
+            PROJECT_STAGE2_CURRICULUM_FULL_MODEL_COUNT
+            or
+            len(
+                candidates
+            )
+            !=
+            49
+        ):
+            raise FormalTrainingCoreError(
+                "Formal Stage-II full pool must contain exactly 49 models"
+            )
+
+    else:
+        raise FormalTrainingCoreError(
+            f"Unknown Stage-II curriculum phase: {phase}"
+        )
+
+    return (
+        phase,
+        candidates,
+    )
+
+
+def sample_formal_stage2_model(
+    state: FormalStage2StateV1,
+):
+    phase, candidates = (
+        eligible_formal_stage2_models(
+            state
+        )
+    )
+
+    if len(candidates) <= 0:
+        raise FormalTrainingCoreError(
+            f"Stage-II curriculum phase {phase} has no eligible models"
+        )
+
+    # IMPORTANT:
+    #
+    # Sample DIRECTLY from the currently eligible pool.
+    # Do not sample from Train49 and rejection-resample excluded
+    # models, because that would make RNG consumption dependent on
+    # the number of rejected draws.
     index = int(
         state.model_rng.integers(
             low=0,
             high=len(
-                state.models
+                candidates
             ),
         )
     )
 
-    return state.models[
+    return candidates[
         index
     ]
 
@@ -1898,6 +2139,33 @@ def collect_formal_stage2_model_episode(
         state.total_environment_steps
     )
 
+    # Curriculum phase is frozen at episode start.
+    #
+    # Even if this episode crosses env=5000, the phase and eligible
+    # pool recorded for this episode do not change.
+    (
+        curriculum_phase,
+        eligible_models,
+    ) = eligible_formal_stage2_models(
+        state
+    )
+
+    eligible_model_count = len(
+        eligible_models
+    )
+
+    if (
+        model
+        not in
+        eligible_models
+    ):
+        raise FormalTrainingCoreError(
+            "Requested Stage-II model is not eligible in current "
+            f"curriculum phase: phase={curriculum_phase}, "
+            f"model={model.model}, "
+            f"stratum={model.complexity_stratum}"
+        )
+
     replay_size_before = len(
         state.expo_buffer
     )
@@ -2213,6 +2481,24 @@ def collect_formal_stage2_model_episode(
 
         "model":
             model.model,
+
+        "model_complexity_stratum":
+            int(
+                model.complexity_stratum
+            ),
+
+        "curriculum_phase":
+            curriculum_phase,
+
+        "eligible_model_count":
+            int(
+                eligible_model_count
+            ),
+
+        "environment_steps_before":
+            int(
+                environment_steps_before
+            ),
 
         "mesh_file":
             str(

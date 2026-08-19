@@ -42,6 +42,16 @@ from training.protocol_v1 import (
     PROJECT_STAGE2_MODEL_COUNT,
     PROJECT_STAGE2_MODEL_SAMPLING,
     PROJECT_STAGE2_MODEL_SAMPLING_RNG,
+    PROJECT_STAGE2_CURRICULUM_VERSION,
+    PROJECT_STAGE2_CURRICULUM_WARMUP_ENV_STEPS,
+    PROJECT_STAGE2_CURRICULUM_WARMUP_MAX_STRATUM,
+    PROJECT_STAGE2_CURRICULUM_WARMUP_MODEL_COUNT,
+    PROJECT_STAGE2_CURRICULUM_FULL_MODEL_COUNT,
+    PROJECT_STAGE2_CURRICULUM_WARMUP_POOL,
+    PROJECT_STAGE2_CURRICULUM_FULL_POOL,
+    PROJECT_STAGE2_CURRICULUM_PHASE_SELECTION,
+    PROJECT_STAGE2_CURRICULUM_BOUNDARY_POLICY,
+    PROJECT_STAGE2_CURRICULUM_SAMPLING_WITHIN_POOL,
     PROJECT_STAGE2_EPISODE_MODEL_SEMANTICS,
     PROJECT_STAGE2_DEV_ALLOWED,
     PROJECT_STAGE2_BLIND_ALLOWED,
@@ -242,7 +252,7 @@ def main():
     assert (
         PROJECT_STAGE2_MODEL_SAMPLING
         ==
-        "UNIFORM_IID_PER_EPISODE"
+        "COMPLEXITY_CURRICULUM_UNIFORM_IID_PER_EPISODE"
     )
 
     assert (
@@ -252,9 +262,69 @@ def main():
     )
 
     assert (
+        PROJECT_STAGE2_CURRICULUM_VERSION
+        ==
+        "complexity_curriculum_v1"
+    )
+
+    assert (
+        PROJECT_STAGE2_CURRICULUM_WARMUP_ENV_STEPS
+        ==
+        5_000
+    )
+
+    assert (
+        PROJECT_STAGE2_CURRICULUM_WARMUP_MAX_STRATUM
+        ==
+        7
+    )
+
+    assert (
+        PROJECT_STAGE2_CURRICULUM_WARMUP_MODEL_COUNT
+        ==
+        39
+    )
+
+    assert (
+        PROJECT_STAGE2_CURRICULUM_FULL_MODEL_COUNT
+        ==
+        49
+    )
+
+    assert (
+        PROJECT_STAGE2_CURRICULUM_WARMUP_POOL
+        ==
+        "TRAIN_MODELS_WITH_COMPLEXITY_STRATUM_LE_7"
+    )
+
+    assert (
+        PROJECT_STAGE2_CURRICULUM_FULL_POOL
+        ==
+        "ALL_TRAIN49"
+    )
+
+    assert (
+        PROJECT_STAGE2_CURRICULUM_PHASE_SELECTION
+        ==
+        "AT_EPISODE_START_FROM_TOTAL_ENVIRONMENT_STEPS"
+    )
+
+    assert (
+        PROJECT_STAGE2_CURRICULUM_BOUNDARY_POLICY
+        ==
+        "NO_MID_EPISODE_PHASE_SWITCH"
+    )
+
+    assert (
+        PROJECT_STAGE2_CURRICULUM_SAMPLING_WITHIN_POOL
+        ==
+        "UNIFORM_IID_PER_EPISODE"
+    )
+
+    assert (
         PROJECT_STAGE2_EPISODE_MODEL_SEMANTICS
         ==
-        "ONE_SAMPLED_TRAIN_MODEL_PER_ENVIRONMENT_EPISODE"
+        "ONE_SAMPLED_ELIGIBLE_TRAIN_MODEL_PER_ENVIRONMENT_EPISODE"
     )
 
     assert (
@@ -328,7 +398,7 @@ def main():
     )
 
     print(
-        "PASS: Training Protocol V1 is open for formal trainer implementation"
+        "PASS: Training Protocol V2 curriculum semantics are frozen"
     )
 
 

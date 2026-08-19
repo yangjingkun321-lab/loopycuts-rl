@@ -35,11 +35,14 @@ from training.formal_training_v1 import (
     FormalTrainingCoreError,
     FormalTrainingCoreV1,
 
+    formal_stage2_curriculum_phase,
     prepare_formal_stage2_state,
     prepare_formal_training_core,
 )
 
 from training.protocol_v1 import (
+    PROTOCOL_VERSION,
+
     PROJECT_BC_WEIGHT,
 
     PROJECT_STAGE1_GRADIENT_STEPS,
@@ -51,7 +54,7 @@ from training.protocol_v1 import (
 
 
 FORMAL_CHECKPOINT_VERSION = (
-    "loopycuts_formal_checkpoint_v1"
+    "loopycuts_formal_checkpoint_v2_curriculum"
 )
 
 
@@ -754,6 +757,20 @@ def build_formal_checkpoint_payload(
                     stage2_state.models
                 ),
 
+            "model_complexity_strata":
+                tuple(
+                    int(
+                        model.complexity_stratum
+                    )
+                    for model in
+                    stage2_state.models
+                ),
+
+            "curriculum_phase":
+                formal_stage2_curriculum_phase(
+                    stage2_state
+                ),
+
             "model_rng_state":
                 copy.deepcopy(
                     stage2_state
@@ -771,6 +788,9 @@ def build_formal_checkpoint_payload(
     payload = {
         "schema_version":
             FORMAL_CHECKPOINT_VERSION,
+
+        "protocol_version":
+            PROTOCOL_VERSION,
 
         "trainer_core_version":
             FORMAL_TRAINER_CORE_VERSION,
@@ -1107,6 +1127,17 @@ def load_formal_checkpoint(
 
     if (
         payload.get(
+            "protocol_version"
+        )
+        !=
+        PROTOCOL_VERSION
+    ):
+        raise FormalCheckpointError(
+            "Training Protocol version mismatch"
+        )
+
+    if (
+        payload.get(
             "trainer_core_version"
         )
         !=
@@ -1436,6 +1467,33 @@ def load_formal_checkpoint(
                 "Checkpoint Train49 ordered model list mismatch"
             )
 
+        observed_complexity_strata = tuple(
+            int(
+                model.complexity_stratum
+            )
+            for model in
+            stage2_state.models
+        )
+
+        expected_complexity_strata = tuple(
+            int(
+                value
+            )
+            for value in
+            stage2_snapshot[
+                "model_complexity_strata"
+            ]
+        )
+
+        if (
+            observed_complexity_strata
+            !=
+            expected_complexity_strata
+        ):
+            raise FormalCheckpointError(
+                "Checkpoint Train49 complexity-stratum list mismatch"
+            )
+
         stage2_state.expo_buffer = (
             restore_expo_replay(
                 snapshot=
@@ -1459,6 +1517,29 @@ def load_formal_checkpoint(
                 "total_gradient_updates"
             ]
         )
+
+        restored_curriculum_phase = (
+            formal_stage2_curriculum_phase(
+                stage2_state
+            )
+        )
+
+        expected_curriculum_phase = str(
+            stage2_snapshot[
+                "curriculum_phase"
+            ]
+        )
+
+        if (
+            restored_curriculum_phase
+            !=
+            expected_curriculum_phase
+        ):
+            raise FormalCheckpointError(
+                "Checkpoint Stage-II curriculum phase mismatch: "
+                f"expected={expected_curriculum_phase}, "
+                f"observed={restored_curriculum_phase}"
+            )
 
         stage2_state.episode_attempts = int(
             stage2_snapshot[

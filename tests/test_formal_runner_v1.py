@@ -462,7 +462,7 @@ def main():
     assert (
         FORMAL_RUNNER_VERSION
         ==
-        "loopycuts_formal_runner_v1"
+        "loopycuts_formal_runner_v2_curriculum"
     )
 
     assert (
@@ -878,7 +878,7 @@ def main():
 
 
         print("=" * 104)
-        print("FORMAL RUNNER V1 INTERRUPTION / RESUME")
+        print("FORMAL RUNNER V2 CURRICULUM INTERRUPTION / RESUME")
         print("=" * 104)
 
         print(

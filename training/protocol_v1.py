@@ -4,7 +4,7 @@ import math
 
 
 PROTOCOL_VERSION = (
-    "loopycuts_training_protocol_v1"
+    "loopycuts_training_protocol_v2_curriculum"
 )
 
 
@@ -720,15 +720,63 @@ PROJECT_STAGE2_MODEL_SPLIT = (
 PROJECT_STAGE2_MODEL_COUNT = 49
 
 PROJECT_STAGE2_MODEL_SAMPLING = (
-    "UNIFORM_IID_PER_EPISODE"
+    "COMPLEXITY_CURRICULUM_UNIFORM_IID_PER_EPISODE"
 )
 
 PROJECT_STAGE2_MODEL_SAMPLING_RNG = (
     "NUMPY_GENERATOR_SEEDED_BY_FORMAL_RUN_SEED"
 )
 
+# ------------------------------------------------------------------
+# Stage-II complexity curriculum.
+#
+# The original frozen V1 protocol exposed all Train49 models from
+# the first online episode.  The curriculum adaptation keeps the
+# same Train49 corpus and the same uniform-IID sampling principle,
+# but restricts the eligible model pool during the initial online
+# adaptation period.
+#
+# Phase selection is evaluated ONLY when a new episode starts.
+# An episode that starts below the 5,000-transition boundary remains
+# a WARMUP episode even if it crosses that boundary before terminal.
+# ------------------------------------------------------------------
+
+PROJECT_STAGE2_CURRICULUM_VERSION = (
+    "complexity_curriculum_v1"
+)
+
+PROJECT_STAGE2_CURRICULUM_WARMUP_ENV_STEPS = 5_000
+
+PROJECT_STAGE2_CURRICULUM_WARMUP_MAX_STRATUM = 7
+
+PROJECT_STAGE2_CURRICULUM_WARMUP_MODEL_COUNT = 39
+
+PROJECT_STAGE2_CURRICULUM_FULL_MODEL_COUNT = (
+    PROJECT_STAGE2_MODEL_COUNT
+)
+
+PROJECT_STAGE2_CURRICULUM_WARMUP_POOL = (
+    "TRAIN_MODELS_WITH_COMPLEXITY_STRATUM_LE_7"
+)
+
+PROJECT_STAGE2_CURRICULUM_FULL_POOL = (
+    "ALL_TRAIN49"
+)
+
+PROJECT_STAGE2_CURRICULUM_PHASE_SELECTION = (
+    "AT_EPISODE_START_FROM_TOTAL_ENVIRONMENT_STEPS"
+)
+
+PROJECT_STAGE2_CURRICULUM_BOUNDARY_POLICY = (
+    "NO_MID_EPISODE_PHASE_SWITCH"
+)
+
+PROJECT_STAGE2_CURRICULUM_SAMPLING_WITHIN_POOL = (
+    "UNIFORM_IID_PER_EPISODE"
+)
+
 PROJECT_STAGE2_EPISODE_MODEL_SEMANTICS = (
-    "ONE_SAMPLED_TRAIN_MODEL_PER_ENVIRONMENT_EPISODE"
+    "ONE_SAMPLED_ELIGIBLE_TRAIN_MODEL_PER_ENVIRONMENT_EPISODE"
 )
 
 PROJECT_STAGE2_DEV_ALLOWED = False

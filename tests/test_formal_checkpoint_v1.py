@@ -40,6 +40,7 @@ from training.formal_checkpoint_v1 import (
 from training.formal_training_v1 import (
     collect_formal_stage2_model_episode,
     enter_formal_stage2,
+    formal_stage2_curriculum_phase,
     prepare_formal_stage2_state,
     prepare_formal_training_core,
     sample_formal_stage2_model,
@@ -252,6 +253,38 @@ def main():
     ] == "FULL_HEX"
 
     assert (
+        record[
+            "curriculum_phase"
+        ]
+        ==
+        "WARMUP"
+    )
+
+    assert (
+        record[
+            "eligible_model_count"
+        ]
+        ==
+        39
+    )
+
+    assert (
+        record[
+            "model_complexity_stratum"
+        ]
+        ==
+        0
+    )
+
+    assert (
+        formal_stage2_curriculum_phase(
+            stage2
+        )
+        ==
+        "WARMUP"
+    )
+
+    assert (
         stage2.total_environment_steps
         ==
         2
@@ -301,7 +334,7 @@ def main():
         assert (
             FORMAL_CHECKPOINT_VERSION
             ==
-            "loopycuts_formal_checkpoint_v1"
+            "loopycuts_formal_checkpoint_v2_curriculum"
         )
 
         assert checkpoint.is_file()
@@ -415,6 +448,14 @@ def main():
         assert (
             restored_core.algorithm.bc_enabled
             is False
+        )
+
+        assert (
+            formal_stage2_curriculum_phase(
+                restored_stage2
+            )
+            ==
+            "WARMUP"
         )
 
         assert (
@@ -688,7 +729,7 @@ def main():
 
 
         print("=" * 100)
-        print("FORMAL CHECKPOINT V1 ROUND-TRIP")
+        print("FORMAL CHECKPOINT V2 CURRICULUM ROUND-TRIP")
         print("=" * 100)
 
         print(

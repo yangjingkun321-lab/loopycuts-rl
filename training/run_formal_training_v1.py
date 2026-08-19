@@ -52,7 +52,7 @@ from training.protocol_v1 import (
 
 
 FORMAL_RUNNER_VERSION = (
-    "loopycuts_formal_runner_v1"
+    "loopycuts_formal_runner_v2_curriculum"
 )
 
 
@@ -78,7 +78,7 @@ FORMAL_CHECKPOINT_INTERVAL_ENV_STEPS = (
 
 DEFAULT_FORMAL_RUN_ROOT = Path(
     "/home/yjk/loopycuts_test/"
-    "formal_training_v1"
+    "formal_training_v2"
 )
 
 CHECKPOINT_DIRECTORY_NAME = (
@@ -1484,7 +1484,7 @@ def main():
     )
 
     print("=" * 100)
-    print("LOOPYCUTS FORMAL TRAINING RUNNER V1")
+    print("LOOPYCUTS FORMAL TRAINING RUNNER V2 CURRICULUM")
     print("=" * 100)
 
     print(

@@ -946,7 +946,7 @@ def main():
 
 
     print(
-        "PASS: Training Protocol V1 preserves "
+        "PASS: Training Protocol V2 curriculum preserves "
         "paper-specified facts and is fully frozen "
         "for formal training"
     )
