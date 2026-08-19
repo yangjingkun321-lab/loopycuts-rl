@@ -593,27 +593,128 @@ PROJECT_BC_WEIGHT_CALIBRATION_SELECTION_RULE = (
 
 
 # ================================================================
-# UNRESOLVED FORMAL-TRAINING ITEMS
+# FINAL FORMAL-TRAINING FREEZE
 #
-# None of these may be assigned an arbitrary smoke-test value.
+# BC weight was selected by the complete frozen
+# BC-weight Calibration V2 grid:
+#
+#     5 lambda candidates
+#   x 3 seeds
+#   x 5 Engineering5 models
+#   = 75 evaluation rows
+#
+# The committed selector chose lambda_BC = 3.0 by the frozen
+# lexicographic rule.
 # ================================================================
 
-UNRESOLVED_BC_WEIGHT = None
+PROJECT_BC_WEIGHT = 3.0
 
-FORMAL_TRAINING_BLOCKERS = (
-    "bc_weight",
+PROJECT_BC_WEIGHT_BASIS = (
+    "FORMAL_BC_WEIGHT_CALIBRATION_V2_SELECTION"
 )
+
+PROJECT_BC_WEIGHT_SELECTION_AUDIT_PATH = (
+    "data/audits/bc_weight_selection_v1.json"
+)
+
+PROJECT_BC_WEIGHT_SELECTION_SHA256 = (
+    "50e7814b75fdf1add71dcd101f9d256b1"
+    "eadd0406d305bed82da0824c6d79611"
+)
+
+PROJECT_BC_WEIGHT_SELECTION_SOURCE_GIT_COMMIT = (
+    "8c2ed2887f272d27f19d848dba4cf21e92a9b6d3"
+)
+
+PROJECT_BC_WEIGHT_SELECTION_PAIR_ARTIFACTS = 15
+
+PROJECT_BC_WEIGHT_SELECTION_EPISODE_ROWS = 75
+
+PROJECT_BC_WEIGHT_SELECTION_GRID_SHA256 = (
+    "fa0a94f24ea528fe72c3543847ddf339"
+    "766becb06ff06d12ab3f0a320ad2bf22"
+)
+
+
+# Formal replication seeds.
+#
+# Reuse the same three replication seeds as the frozen calibration
+# rather than introducing a new arbitrary seed set after calibration.
+PROJECT_FORMAL_TRAINING_SEEDS = (
+    42,
+    43,
+    44,
+)
+
+PROJECT_FORMAL_TRAINING_SEED_BASIS = (
+    "REUSE_FORMAL_BC_CALIBRATION_REPLICATION_SEEDS"
+)
+
+
+# Formal numerical runtime.
+#
+# Reuse the exact CPU runtime that passed the independent-process
+# bitwise Stage-I repeatability audit.
+PROJECT_FORMAL_TRAINING_DEVICE = "cpu"
+
+PROJECT_FORMAL_TRAINING_TORCH_NUM_THREADS = (
+    PROJECT_BC_WEIGHT_CALIBRATION_TORCH_NUM_THREADS
+)
+
+PROJECT_FORMAL_TRAINING_TORCH_NUM_INTEROP_THREADS = (
+    PROJECT_BC_WEIGHT_CALIBRATION_TORCH_NUM_INTEROP_THREADS
+)
+
+PROJECT_FORMAL_TRAINING_TORCH_DETERMINISTIC_ALGORITHMS = (
+    PROJECT_BC_WEIGHT_CALIBRATION_TORCH_DETERMINISTIC_ALGORITHMS
+)
+
+PROJECT_FORMAL_TRAINING_RUNTIME_BASIS = (
+    "BC_WEIGHT_CALIBRATION_CPU_BITWISE_REPEATABILITY_AUDIT"
+)
+
+
+# Stage-II behavior-policy exploration.
+PROJECT_STAGE2_EXPLORATION_EPSILON = (
+    PAPER_TRAIN_EPSILON_GREEDY
+)
+
+PROJECT_STAGE2_COLLECTOR_EXPLORATION_NOISE = True
+
+
+# Equal replay means the total SAC minibatch remains 64:
+#
+#     32 D_demo + 32 D_expo
+#
+PROJECT_STAGE2_SAMPLES_PER_BUFFER = (
+    PAPER_BATCH_SIZE // 2
+)
+
+PROJECT_STAGE2_EXPO_REPLAY_CAPACITY = (
+    PAPER_EXPO_REPLAY_CAPACITY
+)
+
+
+# ================================================================
+# FORMAL-TRAINING GATE
+# ================================================================
+
+FORMAL_TRAINING_BLOCKERS = ()
 
 
 def formal_training_ready() -> bool:
     """
-    Training Protocol V1 is deliberately NOT ready yet.
-
-    This prevents smoke-test hyperparameters from silently becoming
-    formal experimental settings.
+    Return True only when Training Protocol V1 contains no unresolved
+    formal-training choices.
     """
 
-    return False
+    return (
+        len(
+            FORMAL_TRAINING_BLOCKERS
+        )
+        ==
+        0
+    )
 
 
 def assert_formal_training_ready() -> None:

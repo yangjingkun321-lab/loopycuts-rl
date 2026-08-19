@@ -108,7 +108,16 @@ from training.protocol_v1 import (
     PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS,
     PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS_SEMANTICS,
     PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS_BASIS,
-    UNRESOLVED_BC_WEIGHT,
+    PROJECT_BC_WEIGHT,
+    PROJECT_FORMAL_TRAINING_SEEDS,
+    PROJECT_FORMAL_TRAINING_DEVICE,
+    PROJECT_FORMAL_TRAINING_TORCH_NUM_THREADS,
+    PROJECT_FORMAL_TRAINING_TORCH_NUM_INTEROP_THREADS,
+    PROJECT_FORMAL_TRAINING_TORCH_DETERMINISTIC_ALGORITHMS,
+    PROJECT_STAGE2_EXPLORATION_EPSILON,
+    PROJECT_STAGE2_COLLECTOR_EXPLORATION_NOISE,
+    PROJECT_STAGE2_SAMPLES_PER_BUFFER,
+    PROJECT_STAGE2_EXPO_REPLAY_CAPACITY,
     assert_formal_training_ready,
     formal_training_ready,
     paper_entropy_target,
@@ -859,37 +868,87 @@ def main():
 
 
     # ------------------------------------------------------------
-    # Critical unresolved values must remain explicit.
+    # Final formal-training freeze.
     # ------------------------------------------------------------
 
-    assert UNRESOLVED_BC_WEIGHT is None
-
-    assert set(
-        FORMAL_TRAINING_BLOCKERS
-    ) == {
-        "bc_weight",
-    }
+    assert math.isclose(
+        PROJECT_BC_WEIGHT,
+        3.0,
+    )
 
     assert (
-        formal_training_ready()
+        PROJECT_FORMAL_TRAINING_SEEDS
+        ==
+        (
+            42,
+            43,
+            44,
+        )
+    )
+
+    assert (
+        PROJECT_FORMAL_TRAINING_DEVICE
+        ==
+        "cpu"
+    )
+
+    assert (
+        PROJECT_FORMAL_TRAINING_TORCH_NUM_THREADS
+        ==
+        8
+    )
+
+    assert (
+        PROJECT_FORMAL_TRAINING_TORCH_NUM_INTEROP_THREADS
+        ==
+        8
+    )
+
+    assert (
+        PROJECT_FORMAL_TRAINING_TORCH_DETERMINISTIC_ALGORITHMS
         is False
     )
 
+    assert math.isclose(
+        PROJECT_STAGE2_EXPLORATION_EPSILON,
+        0.05,
+    )
 
-    try:
-        assert_formal_training_ready()
-    except RuntimeError:
-        pass
-    else:
-        raise AssertionError(
-            "Formal training gate unexpectedly opened"
-        )
+    assert (
+        PROJECT_STAGE2_COLLECTOR_EXPLORATION_NOISE
+        is True
+    )
+
+    assert (
+        PROJECT_STAGE2_SAMPLES_PER_BUFFER
+        ==
+        32
+    )
+
+    assert (
+        PROJECT_STAGE2_EXPO_REPLAY_CAPACITY
+        ==
+        25_000
+    )
+
+    assert (
+        FORMAL_TRAINING_BLOCKERS
+        ==
+        ()
+    )
+
+    assert (
+        formal_training_ready()
+        is True
+    )
+
+    assert_formal_training_ready()
 
 
     print(
         "PASS: Training Protocol V1 preserves "
-        "paper-specified facts and explicitly "
-        "blocks unresolved formal-training choices"
+        "paper-specified facts and is fully frozen "
+        "for formal training"
     )
 
 

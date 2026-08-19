@@ -1,0 +1,171 @@
+{
+  "calibration_version": "bc_weight_calibration_v2",
+  "candidate_summaries": [
+    {
+      "aggregate_nonhex_fraction": 0.006539447015182225,
+      "bc_weight": 0.1,
+      "episodes": 15,
+      "finalization_crash_count": 6,
+      "full_hex_count": 6,
+      "mean_episode_return": -4.345176871182124
+    },
+    {
+      "aggregate_nonhex_fraction": 0.0065768621236133125,
+      "bc_weight": 0.3,
+      "episodes": 15,
+      "finalization_crash_count": 6,
+      "full_hex_count": 6,
+      "mean_episode_return": -4.416586229750224
+    },
+    {
+      "aggregate_nonhex_fraction": 0.0063335103992154616,
+      "bc_weight": 0.5,
+      "episodes": 15,
+      "finalization_crash_count": 6,
+      "full_hex_count": 6,
+      "mean_episode_return": -4.345799464768528
+    },
+    {
+      "aggregate_nonhex_fraction": 0.003932625955331305,
+      "bc_weight": 1.0,
+      "episodes": 15,
+      "finalization_crash_count": 5,
+      "full_hex_count": 7,
+      "mean_episode_return": -3.5684336773334016
+    },
+    {
+      "aggregate_nonhex_fraction": 0.001431980906921241,
+      "bc_weight": 3.0,
+      "episodes": 15,
+      "finalization_crash_count": 4,
+      "full_hex_count": 8,
+      "mean_episode_return": -2.793859126511959
+    }
+  ],
+  "cpu_runtime": {
+    "device": "cpu",
+    "torch_deterministic_algorithms": false,
+    "torch_num_interop_threads": 8,
+    "torch_num_threads": 8
+  },
+  "episode_result_count": 75,
+  "git_commit": "8c2ed2887f272d27f19d848dba4cf21e92a9b6d3",
+  "input_provenance": {
+    "cpu_repeatability_audit_sha256": "a3c367167cb8f1f710c4eaea5edf23fdee50d401e5ca083df5fc82f4cf7f83fe",
+    "dataset_manifest_sha256": "e7bc6ba976417d427d9a105f5b90a54c304c08fdd0baff542e083c8f42ff826b",
+    "demo_quality_manifest_sha256": "4fa404d8436fce4aebef526eac6ab904fe3c6b846432f8fc1256cbc416b66f89",
+    "formal_d_demo_aggregate_sha256": "e4de643107462712e63b55ea5839fa92293d8256b255d7f5fb03ec9619e3c383",
+    "loopycuts_executable_sha256": "920ff358d7840dfa13dc53cc0b603721347cc77e8951afb14d322de14f84a565",
+    "loopycuts_source_base_commit": "03bcff8b09ce6c03b75a1ee59e43bc5aeac3730c",
+    "manifest_path": "/home/yjk/codes/loopycuts_rl/data/manifests/bc_weight_calibration_input_provenance_v1.json",
+    "manifest_sha256": "b97d70f52ebbc0bf861042e6adfe29b4305952f459a59cfffa524d154f82d01d",
+    "schema_version": "bc_weight_calibration_input_provenance_v1",
+    "torch_deterministic_algorithms": false,
+    "torch_num_interop_threads": 8,
+    "torch_num_threads": 8
+  },
+  "pair_artifact_count": 15,
+  "pair_artifacts": [
+    {
+      "bc_weight": 0.1,
+      "path": "/home/yjk/loopycuts_test/bc_weight_calibration_v2/formal_pairs/formal_lambda_0p1_seed_42.json",
+      "seed": 42,
+      "sha256": "11c780403587803b9e6989e0126cb96ba7d5367b6e65dddb7044f341f0c72886"
+    },
+    {
+      "bc_weight": 0.1,
+      "path": "/home/yjk/loopycuts_test/bc_weight_calibration_v2/formal_pairs/formal_lambda_0p1_seed_43.json",
+      "seed": 43,
+      "sha256": "8936133f5ea7c80c217851c6c8c38115d0a75ed96a125df4993e662dbcccce98"
+    },
+    {
+      "bc_weight": 0.1,
+      "path": "/home/yjk/loopycuts_test/bc_weight_calibration_v2/formal_pairs/formal_lambda_0p1_seed_44.json",
+      "seed": 44,
+      "sha256": "ec81eadd5c542139f474d02012128a7db66165b4f3bd7dfaf957cb1de6c3f11d"
+    },
+    {
+      "bc_weight": 0.3,
+      "path": "/home/yjk/loopycuts_test/bc_weight_calibration_v2/formal_pairs/formal_lambda_0p3_seed_42.json",
+      "seed": 42,
+      "sha256": "5ada8312d37cf1e3ab096ce178c3ff34f2815dd878d029b9a9bef0009ce9e6f9"
+    },
+    {
+      "bc_weight": 0.3,
+      "path": "/home/yjk/loopycuts_test/bc_weight_calibration_v2/formal_pairs/formal_lambda_0p3_seed_43.json",
+      "seed": 43,
+      "sha256": "36c59f7440e128896f9a288e621a43079d37eb8aff31201899f7b083446c17ec"
+    },
+    {
+      "bc_weight": 0.3,
+      "path": "/home/yjk/loopycuts_test/bc_weight_calibration_v2/formal_pairs/formal_lambda_0p3_seed_44.json",
+      "seed": 44,
+      "sha256": "c48b7556009407bc70157bc25c0404ca1181c58beb6da2c21dc92dd459018545"
+    },
+    {
+      "bc_weight": 0.5,
+      "path": "/home/yjk/loopycuts_test/bc_weight_calibration_v2/formal_pairs/formal_lambda_0p5_seed_42.json",
+      "seed": 42,
+      "sha256": "935a5816e677fcbcba16681710fe7460f03654ab54383efc4d18df0e0a5b8ef5"
+    },
+    {
+      "bc_weight": 0.5,
+      "path": "/home/yjk/loopycuts_test/bc_weight_calibration_v2/formal_pairs/formal_lambda_0p5_seed_43.json",
+      "seed": 43,
+      "sha256": "14e796103b2ad63ae45a6f2074dcbd849186ade34ff8c5003dc0babd5f8e5506"
+    },
+    {
+      "bc_weight": 0.5,
+      "path": "/home/yjk/loopycuts_test/bc_weight_calibration_v2/formal_pairs/formal_lambda_0p5_seed_44.json",
+      "seed": 44,
+      "sha256": "f548558de9fb7085f206ce1d92257fcb5e04c948b7394f2a843a83c4213703b5"
+    },
+    {
+      "bc_weight": 1.0,
+      "path": "/home/yjk/loopycuts_test/bc_weight_calibration_v2/formal_pairs/formal_lambda_1_seed_42.json",
+      "seed": 42,
+      "sha256": "12a157e80bd2401364a45bde1ab2313c24eb6fee54ea635c6b4504d9db328750"
+    },
+    {
+      "bc_weight": 1.0,
+      "path": "/home/yjk/loopycuts_test/bc_weight_calibration_v2/formal_pairs/formal_lambda_1_seed_43.json",
+      "seed": 43,
+      "sha256": "76b490d5b2acc47a466e831e5a30aa1cc4c2864408bb82c8f1f37fa5659e5cc6"
+    },
+    {
+      "bc_weight": 1.0,
+      "path": "/home/yjk/loopycuts_test/bc_weight_calibration_v2/formal_pairs/formal_lambda_1_seed_44.json",
+      "seed": 44,
+      "sha256": "e3d9b949881c339a31dee1ec5a1cf2d869cbbf1206e814d8005917e0d888b97e"
+    },
+    {
+      "bc_weight": 3.0,
+      "path": "/home/yjk/loopycuts_test/bc_weight_calibration_v2/formal_pairs/formal_lambda_3_seed_42.json",
+      "seed": 42,
+      "sha256": "1031272733077e4797915778b260468adabbf1a734af9ad28cad43298ce322bb"
+    },
+    {
+      "bc_weight": 3.0,
+      "path": "/home/yjk/loopycuts_test/bc_weight_calibration_v2/formal_pairs/formal_lambda_3_seed_43.json",
+      "seed": 43,
+      "sha256": "96f8b4bce9eb7c3182ec90fb64819d95cc0b11330a2136ae50fea2bb222ec49c"
+    },
+    {
+      "bc_weight": 3.0,
+      "path": "/home/yjk/loopycuts_test/bc_weight_calibration_v2/formal_pairs/formal_lambda_3_seed_44.json",
+      "seed": 44,
+      "sha256": "eb988c453487fe7e544004594681bb9d583fcf8182125a447ee58cad2339d3e9"
+    }
+  ],
+  "result_schema_version": "bc_weight_calibration_result_v1",
+  "run_kind": "FORMAL_BC_WEIGHT_CALIBRATION_SELECTION",
+  "runner_version": "bc_weight_calibration_runner_v2",
+  "winner": {
+    "aggregate_nonhex_fraction": 0.001431980906921241,
+    "bc_weight": 3.0,
+    "episodes": 15,
+    "finalization_crash_count": 4,
+    "full_hex_count": 8,
+    "mean_episode_return": -2.793859126511959
+  }
+}

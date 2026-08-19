@@ -143,8 +143,6 @@ from training.protocol_v1 import (
     PROJECT_BC_WEIGHT_CALIBRATION_TORCH_NUM_INTEROP_THREADS,
     PROJECT_BC_WEIGHT_CALIBRATION_TORCH_DETERMINISTIC_ALGORITHMS,
 
-    UNRESOLVED_BC_WEIGHT,
-    FORMAL_TRAINING_BLOCKERS,
     formal_training_ready,
 )
 
@@ -469,13 +467,9 @@ def assert_protocol():
     assert PROJECT_MAIN_DEMO_EPISODES == 30
     assert PROJECT_MAIN_DEMO_TRANSITIONS == 605
 
-    assert UNRESOLVED_BC_WEIGHT is None
-
-    assert FORMAL_TRAINING_BLOCKERS == (
-        "bc_weight",
-    )
-
-    assert formal_training_ready() is False
+    # BC calibration remains reproducible after the final
+    # training protocol is opened.  Calibration invariants above
+    # are intentionally independent of the final-training gate.
 
 
 def configure_calibration_cpu_runtime():
