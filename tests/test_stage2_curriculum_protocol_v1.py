@@ -65,7 +65,7 @@ def main():
     assert (
         PROTOCOL_VERSION
         ==
-        "loopycuts_training_protocol_v2_curriculum"
+        "loopycuts_training_protocol_v3_resource_guard"
     )
 
     assert (

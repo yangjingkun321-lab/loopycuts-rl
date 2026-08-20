@@ -34,6 +34,28 @@ from training.formal_training_v1 import (
 )
 
 from training.protocol_v1 import (
+    PROJECT_REWARD_VERSION,
+    PROJECT_RUNTIME_REWARD_VERSION,
+
+    PROJECT_STAGE2_RESOURCE_GUARD_VERSION,
+    PROJECT_STAGE2_RESOURCE_GUARD_SAMPLE_INTERVAL_SECONDS,
+    PROJECT_STAGE2_RESOURCE_GUARD_WARNING_SWAP_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SWAP_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_ABORT_HOLD_SECONDS,
+    PROJECT_STAGE2_RESOURCE_GUARD_EMERGENCY_SWAP_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_INITIALIZE_ENABLED,
+    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_ADDS_TRANSITION,
+    PROJECT_STAGE2_RESOURCE_GUARD_REARM_SWAP_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_REARM_TIMEOUT_SECONDS,
+    PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SCOPE,
+    PROJECT_STAGE2_RESOURCE_GUARD_TERMINAL_OUTCOME,
+    PROJECT_STAGE2_RESOURCE_GUARD_TERMINAL_REWARD,
+    PROJECT_STAGE2_RESOURCE_GUARD_ABORT_COUNTS_AS_TRANSITION,
+    PROJECT_STAGE2_RESOURCE_GUARD_DENSE_SHAPING_ENABLED,
+    PROJECT_STAGE2_RESOURCE_GUARD_IMMEDIATE_CHECKPOINT,
+    PROJECT_STAGE2_RESOURCE_GUARD_PREFLIGHT_REARM_REQUIRED,
+    PROJECT_STAGE2_RESOURCE_GUARD_COLLECTOR_AUTORESET_POLICY,
     PROTOCOL_VERSION,
 
     PROJECT_BC_WEIGHT,
@@ -65,23 +87,23 @@ from training.protocol_v1 import (
 
 
 FORMAL_RUN_ARTIFACTS_VERSION = (
-    "loopycuts_formal_run_artifacts_v2_curriculum"
+    "loopycuts_formal_run_artifacts_v3_resource_guard"
 )
 
 FORMAL_RUN_MANIFEST_SCHEMA = (
-    "loopycuts_formal_run_manifest_v2_curriculum"
+    "loopycuts_formal_run_manifest_v3_resource_guard"
 )
 
 FORMAL_RUN_EVENT_SCHEMA = (
-    "loopycuts_formal_run_event_v2_curriculum"
+    "loopycuts_formal_run_event_v3_resource_guard"
 )
 
 RUN_MANIFEST_FILENAME = (
-    "run_manifest_v2.json"
+    "run_manifest_v3.json"
 )
 
 EVENT_LOG_FILENAME = (
-    "events_v2.jsonl"
+    "events_v3.jsonl"
 )
 
 
@@ -89,6 +111,103 @@ class FormalRunArtifactError(
     RuntimeError
 ):
     pass
+
+
+def formal_resource_guard_manifest_contract():
+    return {
+        "version":
+            PROJECT_STAGE2_RESOURCE_GUARD_VERSION,
+
+        "reward_version":
+            PROJECT_REWARD_VERSION,
+
+        "runtime_reward_version":
+            PROJECT_RUNTIME_REWARD_VERSION,
+
+        "sample_interval_seconds":
+            float(
+                PROJECT_STAGE2_RESOURCE_GUARD_SAMPLE_INTERVAL_SECONDS
+            ),
+
+        "warning_swap_gib":
+            int(
+                PROJECT_STAGE2_RESOURCE_GUARD_WARNING_SWAP_GIB
+            ),
+
+        "abort_swap_gib":
+            int(
+                PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SWAP_GIB
+            ),
+
+        "abort_hold_seconds":
+            float(
+                PROJECT_STAGE2_RESOURCE_GUARD_ABORT_HOLD_SECONDS
+            ),
+
+        "emergency_swap_gib":
+            int(
+                PROJECT_STAGE2_RESOURCE_GUARD_EMERGENCY_SWAP_GIB
+            ),
+
+        "finalize_eval_swap_abort_gib":
+            int(
+                PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB
+            ),
+
+        "initialize_guard_enabled":
+            bool(
+                PROJECT_STAGE2_RESOURCE_GUARD_INITIALIZE_ENABLED
+            ),
+
+        "finalize_eval_adds_transition":
+            bool(
+                PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_ADDS_TRANSITION
+            ),
+
+        "rearm_swap_gib":
+            int(
+                PROJECT_STAGE2_RESOURCE_GUARD_REARM_SWAP_GIB
+            ),
+
+        "rearm_timeout_seconds":
+            float(
+                PROJECT_STAGE2_RESOURCE_GUARD_REARM_TIMEOUT_SECONDS
+            ),
+
+        "abort_scope":
+            PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SCOPE,
+
+        "terminal_outcome":
+            PROJECT_STAGE2_RESOURCE_GUARD_TERMINAL_OUTCOME,
+
+        "terminal_reward":
+            float(
+                PROJECT_STAGE2_RESOURCE_GUARD_TERMINAL_REWARD
+            ),
+
+        "abort_counts_as_transition":
+            bool(
+                PROJECT_STAGE2_RESOURCE_GUARD_ABORT_COUNTS_AS_TRANSITION
+            ),
+
+        "dense_shaping_enabled":
+            bool(
+                PROJECT_STAGE2_RESOURCE_GUARD_DENSE_SHAPING_ENABLED
+            ),
+
+        "immediate_checkpoint":
+            bool(
+                PROJECT_STAGE2_RESOURCE_GUARD_IMMEDIATE_CHECKPOINT
+            ),
+
+        "preflight_rearm_required":
+            bool(
+                PROJECT_STAGE2_RESOURCE_GUARD_PREFLIGHT_REARM_REQUIRED
+            ),
+
+        "collector_autoreset_policy":
+            PROJECT_STAGE2_RESOURCE_GUARD_COLLECTOR_AUTORESET_POLICY,
+    }
 
 
 # ======================================================================
@@ -490,6 +609,9 @@ def build_formal_run_manifest(
                 int(
                     PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS
                 ),
+
+            "stage2_resource_guard":
+                formal_resource_guard_manifest_contract(),
         },
     }
 
@@ -637,6 +759,52 @@ def load_and_validate_run_manifest(
         raise FormalRunArtifactError(
             "Formal run artifact version mismatch"
         )
+
+    expected_software_contract = {
+        "protocol_version":
+            PROTOCOL_VERSION,
+
+        "trainer_core_version":
+            FORMAL_TRAINER_CORE_VERSION,
+
+        "stage2_online_version":
+            FORMAL_STAGE2_ONLINE_VERSION,
+
+        "checkpoint_version":
+            FORMAL_CHECKPOINT_VERSION,
+    }
+
+    if (
+        manifest.get(
+            "software_contract"
+        )
+        !=
+        expected_software_contract
+    ):
+        raise FormalRunArtifactError(
+            "Formal run software contract mismatch"
+        )
+
+    observed_resource_guard = (
+        manifest
+        .get(
+            "formal_training",
+            {},
+        )
+        .get(
+            "stage2_resource_guard"
+        )
+    )
+
+    if (
+        observed_resource_guard
+        !=
+        formal_resource_guard_manifest_contract()
+    ):
+        raise FormalRunArtifactError(
+            "Formal run ResourceGuard contract mismatch"
+        )
+
 
     if (
         int(

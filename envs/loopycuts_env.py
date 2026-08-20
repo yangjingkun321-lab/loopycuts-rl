@@ -7,7 +7,10 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from bridge.cpp_client import LoopyCutsClient
+from bridge.cpp_client import (
+    LoopyCutsClient,
+    RLServerResourceAbort,
+)
 from dataset_tools.loop_metadata import parse_loop_metadata
 from observation.builder import (
     GLOBAL_DIM,
@@ -65,6 +68,10 @@ class LoopyCutsEnv(gym.Env):
         mesh_file: str | Path,
         loop_file: str | Path,
         echo_logs: bool = False,
+        resource_guard_policy=None,
+        resource_guard_sample_interval_seconds: float = 1.0,
+        resource_snapshot_reader=None,
+        finalize_eval_swap_abort_bytes=None,
     ):
         super().__init__()
 
@@ -82,6 +89,24 @@ class LoopyCutsEnv(gym.Env):
 
         self.echo_logs = bool(
             echo_logs
+        )
+
+        # ResourceGuard remains opt-in at the environment level
+        # until the later formal V3 protocol integration.
+        self.resource_guard_policy = (
+            resource_guard_policy
+        )
+
+        self.resource_guard_sample_interval_seconds = float(
+            resource_guard_sample_interval_seconds
+        )
+
+        self.resource_snapshot_reader = (
+            resource_snapshot_reader
+        )
+
+        self.finalize_eval_swap_abort_bytes = (
+            finalize_eval_swap_abort_bytes
         )
 
         # ------------------------------------------------------------
@@ -313,6 +338,247 @@ class LoopyCutsEnv(gym.Env):
 
     # ------------------------------------------------------------------
 
+    def _resource_abort_transition(
+        self,
+        *,
+        action: int,
+        state_before: dict,
+        exc: RLServerResourceAbort,
+    ):
+        """
+        Convert one ResourceGuard-aborted C++ STEP into a genuine
+        terminal Gym transition.
+
+        The selected action is real, but C++ did not return a complete
+        STEP_RESULT/state_after. Therefore:
+
+            - do NOT fabricate geometric transition metrics;
+            - do NOT pretend the cut committed/reverted;
+            - do preserve the action as an attempted agent action;
+            - return a synthetic terminal observation whose action
+              mask is empty.
+
+        Reward is deliberately a placeholder here. The outer reward
+        layer will define RESOURCE_ABORT reward semantics in the next
+        integration phase.
+        """
+
+        if self._builder is None:
+            raise RuntimeError(
+                "Observation builder is not initialized"
+            )
+
+        client = self.client
+
+        # The agent really selected/sent this loop ID.
+        self.executed_loop_ids.add(
+            int(
+                action
+            )
+        )
+
+        # ------------------------------------------------------------
+        # Synthetic terminal state.
+        #
+        # Geometry fields remain at the last authoritative pre-STEP
+        # C++ state because the aborted STEP never returned a complete
+        # post-state.
+        #
+        # The RL transition itself still consumes one action, so the
+        # synthetic step index advances by one.
+        # ------------------------------------------------------------
+
+        terminal_state = dict(
+            state_before
+        )
+
+        terminal_state[
+            "step"
+        ] = (
+            int(
+                state_before[
+                    "step"
+                ]
+            )
+            +
+            1
+        )
+
+        terminal_state[
+            "available"
+        ] = 0
+
+        terminal_state[
+            "terminal"
+        ] = 1
+
+        terminal_state[
+            "selection_success"
+        ] = 0
+
+        terminal_state[
+            "finalized"
+        ] = 0
+
+        observation = (
+            self._builder.build(
+                state=
+                    terminal_state,
+
+                actions=
+                    [],
+
+                used=
+                    client.used,
+
+                reverted=
+                    client.reverted,
+
+                nico_bug=
+                    client.nico_bug,
+
+                top_relevant=
+                    client.top_relevant,
+
+                executed=
+                    self.executed_loop_ids,
+            )
+        )
+
+        if not self.observation_space.contains(
+            observation
+        ):
+            raise RuntimeError(
+                "RESOURCE_ABORT synthetic terminal observation "
+                "is not contained in observation_space"
+            )
+
+        snapshot = (
+            exc.snapshot
+        )
+
+        cpp_memory = (
+            snapshot.cpp_memory
+        )
+
+        cpp_rss_bytes = 0
+        cpp_swap_bytes = 0
+
+        if cpp_memory is not None:
+            cpp_rss_bytes = int(
+                cpp_memory.rss_bytes
+            )
+
+            cpp_swap_bytes = int(
+                cpp_memory.swap_bytes
+            )
+
+        resource_abort = {
+            "outcome":
+                "RESOURCE_ABORT",
+
+            "phase":
+                str(
+                    exc.phase
+                ),
+
+            "guard_state":
+                str(
+                    exc.guard_state
+                ),
+
+            "action":
+                int(
+                    action
+                ),
+
+            "return_code":
+                (
+                    None
+                    if exc.return_code is None
+                    else int(
+                        exc.return_code
+                    )
+                ),
+
+            "swap_used_bytes":
+                int(
+                    snapshot.swap_used_bytes
+                ),
+
+            "swap_total_bytes":
+                int(
+                    snapshot.swap_total_bytes
+                ),
+
+            "swap_free_bytes":
+                int(
+                    snapshot.swap_free_bytes
+                ),
+
+            "mem_available_bytes":
+                int(
+                    snapshot.mem_available_bytes
+                ),
+
+            "python_rss_bytes":
+                int(
+                    snapshot
+                    .python_memory
+                    .rss_bytes
+                ),
+
+            "python_swap_bytes":
+                int(
+                    snapshot
+                    .python_memory
+                    .swap_bytes
+                ),
+
+            "cpp_rss_bytes":
+                cpp_rss_bytes,
+
+            "cpp_swap_bytes":
+                cpp_swap_bytes,
+        }
+
+        info = {
+            "state":
+                terminal_state,
+
+            "num_legal_actions":
+                0,
+
+            "num_executed":
+                len(
+                    self.executed_loop_ids
+                ),
+
+            # The inner Selection Reward V1 cannot be computed because
+            # the C++ STEP never yielded real post-transition geometry.
+            "reward_is_placeholder":
+                True,
+
+            "reward_version":
+                "selection_v1_resource_abort_placeholder",
+
+            "resource_abort":
+                resource_abort,
+        }
+
+        return (
+            observation,
+
+            0.0,
+
+            True,
+
+            False,
+
+            info,
+        )
+
+
     def reset(
         self,
         *,
@@ -355,6 +621,18 @@ class LoopyCutsEnv(gym.Env):
             mesh_file=self.mesh_file,
             loop_file=self.loop_file,
             echo_logs=self.echo_logs,
+
+            resource_guard_policy=
+                self.resource_guard_policy,
+
+            resource_guard_sample_interval_seconds=
+                self.resource_guard_sample_interval_seconds,
+
+            resource_snapshot_reader=
+                self.resource_snapshot_reader,
+
+            finalize_eval_swap_abort_bytes=
+                self.finalize_eval_swap_abort_bytes,
         )
 
         try:
@@ -486,13 +764,26 @@ class LoopyCutsEnv(gym.Env):
             client.state
         )
 
-        (
-            step_result,
-            _,
-            _,
-        ) = client.step(
-            action
-        )
+        try:
+            (
+                step_result,
+                _,
+                _,
+            ) = client.step(
+                action
+            )
+
+        except RLServerResourceAbort as exc:
+            return self._resource_abort_transition(
+                action=
+                    action,
+
+                state_before=
+                    state_before,
+
+                exc=
+                    exc,
+            )
 
         #
         # executed means the agent actually selected this action.

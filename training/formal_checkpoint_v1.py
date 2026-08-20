@@ -41,6 +41,25 @@ from training.formal_training_v1 import (
 )
 
 from training.protocol_v1 import (
+    PROJECT_STAGE2_RESOURCE_GUARD_VERSION,
+    PROJECT_STAGE2_RESOURCE_GUARD_SAMPLE_INTERVAL_SECONDS,
+    PROJECT_STAGE2_RESOURCE_GUARD_WARNING_SWAP_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SWAP_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_ABORT_HOLD_SECONDS,
+    PROJECT_STAGE2_RESOURCE_GUARD_EMERGENCY_SWAP_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_INITIALIZE_ENABLED,
+    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_ADDS_TRANSITION,
+    PROJECT_STAGE2_RESOURCE_GUARD_REARM_SWAP_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_REARM_TIMEOUT_SECONDS,
+    PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SCOPE,
+    PROJECT_STAGE2_RESOURCE_GUARD_TERMINAL_OUTCOME,
+    PROJECT_STAGE2_RESOURCE_GUARD_TERMINAL_REWARD,
+    PROJECT_STAGE2_RESOURCE_GUARD_ABORT_COUNTS_AS_TRANSITION,
+    PROJECT_STAGE2_RESOURCE_GUARD_DENSE_SHAPING_ENABLED,
+    PROJECT_STAGE2_RESOURCE_GUARD_IMMEDIATE_CHECKPOINT,
+    PROJECT_STAGE2_RESOURCE_GUARD_PREFLIGHT_REARM_REQUIRED,
+    PROJECT_STAGE2_RESOURCE_GUARD_COLLECTOR_AUTORESET_POLICY,
     PROTOCOL_VERSION,
 
     PROJECT_BC_WEIGHT,
@@ -54,7 +73,7 @@ from training.protocol_v1 import (
 
 
 FORMAL_CHECKPOINT_VERSION = (
-    "loopycuts_formal_checkpoint_v2_curriculum"
+    "loopycuts_formal_checkpoint_v3_resource_guard"
 )
 
 
@@ -69,6 +88,97 @@ class FormalCheckpointError(
     RuntimeError
 ):
     pass
+
+
+def formal_resource_guard_contract():
+    return {
+        "version":
+            PROJECT_STAGE2_RESOURCE_GUARD_VERSION,
+
+        "sample_interval_seconds":
+            float(
+                PROJECT_STAGE2_RESOURCE_GUARD_SAMPLE_INTERVAL_SECONDS
+            ),
+
+        "warning_swap_gib":
+            int(
+                PROJECT_STAGE2_RESOURCE_GUARD_WARNING_SWAP_GIB
+            ),
+
+        "abort_swap_gib":
+            int(
+                PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SWAP_GIB
+            ),
+
+        "abort_hold_seconds":
+            float(
+                PROJECT_STAGE2_RESOURCE_GUARD_ABORT_HOLD_SECONDS
+            ),
+
+        "emergency_swap_gib":
+            int(
+                PROJECT_STAGE2_RESOURCE_GUARD_EMERGENCY_SWAP_GIB
+            ),
+
+        "finalize_eval_swap_abort_gib":
+            int(
+                PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB
+            ),
+
+        "initialize_guard_enabled":
+            bool(
+                PROJECT_STAGE2_RESOURCE_GUARD_INITIALIZE_ENABLED
+            ),
+
+        "finalize_eval_adds_transition":
+            bool(
+                PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_ADDS_TRANSITION
+            ),
+
+        "rearm_swap_gib":
+            int(
+                PROJECT_STAGE2_RESOURCE_GUARD_REARM_SWAP_GIB
+            ),
+
+        "rearm_timeout_seconds":
+            float(
+                PROJECT_STAGE2_RESOURCE_GUARD_REARM_TIMEOUT_SECONDS
+            ),
+
+        "abort_scope":
+            PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SCOPE,
+
+        "terminal_outcome":
+            PROJECT_STAGE2_RESOURCE_GUARD_TERMINAL_OUTCOME,
+
+        "terminal_reward":
+            float(
+                PROJECT_STAGE2_RESOURCE_GUARD_TERMINAL_REWARD
+            ),
+
+        "abort_counts_as_transition":
+            bool(
+                PROJECT_STAGE2_RESOURCE_GUARD_ABORT_COUNTS_AS_TRANSITION
+            ),
+
+        "dense_shaping_enabled":
+            bool(
+                PROJECT_STAGE2_RESOURCE_GUARD_DENSE_SHAPING_ENABLED
+            ),
+
+        "immediate_checkpoint":
+            bool(
+                PROJECT_STAGE2_RESOURCE_GUARD_IMMEDIATE_CHECKPOINT
+            ),
+
+        "preflight_rearm_required":
+            bool(
+                PROJECT_STAGE2_RESOURCE_GUARD_PREFLIGHT_REARM_REQUIRED
+            ),
+
+        "collector_autoreset_policy":
+            PROJECT_STAGE2_RESOURCE_GUARD_COLLECTOR_AUTORESET_POLICY,
+    }
 
 
 # ======================================================================
@@ -798,6 +908,9 @@ def build_formal_checkpoint_payload(
         "stage2_online_version":
             FORMAL_STAGE2_ONLINE_VERSION,
 
+        "resource_guard_contract":
+            formal_resource_guard_contract(),
+
         "repository": {
             "head":
                 current_git_head(),
@@ -1156,6 +1269,17 @@ def load_formal_checkpoint(
     ):
         raise FormalCheckpointError(
             "Formal Stage-II Online version mismatch"
+        )
+
+    if (
+        payload.get(
+            "resource_guard_contract"
+        )
+        !=
+        formal_resource_guard_contract()
+    ):
+        raise FormalCheckpointError(
+            "Checkpoint ResourceGuard contract mismatch"
         )
 
     _validate_software(

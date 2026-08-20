@@ -398,7 +398,7 @@ def main():
     )
 
     print(
-        "PASS: Training Protocol V2 curriculum semantics are frozen"
+        "PASS: Training Protocol V3 resource guard semantics are frozen"
     )
 
 

@@ -41,8 +41,13 @@ from algorithms.demo_guided_discrete_sac_v1 import (
     LoopyCutsDemoGuidedDiscreteSACV1,
 )
 
-from envs.final_reward_wrapper import (
-    FinalRewardWrapper,
+from bridge.resource_guard_v1 import (
+    GIB,
+    ResourceGuardPolicyV1,
+)
+
+from envs.final_reward_wrapper_v3 import (
+    FinalRewardWrapperV3,
 )
 
 from envs.finalization_eval_wrapper import (
@@ -51,6 +56,14 @@ from envs.finalization_eval_wrapper import (
 
 from envs.loopycuts_env import (
     LoopyCutsEnv,
+)
+
+from envs.formal_episode_collector_bridge_v1 import (
+    FormalEpisodeCollectorBridgeV1,
+)
+
+from rewards.reward_v3 import (
+    REWARD_V3_VERSION,
 )
 
 from imitation.demo_replay import (
@@ -78,6 +91,13 @@ from training.masked_auto_alpha_v1 import (
 )
 
 from training.protocol_v1 import (
+    PROJECT_STAGE2_RESOURCE_GUARD_SAMPLE_INTERVAL_SECONDS,
+    PROJECT_STAGE2_RESOURCE_GUARD_WARNING_SWAP_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SWAP_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_ABORT_HOLD_SECONDS,
+    PROJECT_STAGE2_RESOURCE_GUARD_EMERGENCY_SWAP_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_REARM_SWAP_GIB,
     PAPER_BATCH_SIZE,
     PAPER_DISCOUNT_FACTOR,
     PAPER_ENTROPY_TARGET_COEFFICIENT,
@@ -1181,7 +1201,7 @@ def enter_formal_stage2(
 # ======================================================================
 
 FORMAL_STAGE2_ONLINE_VERSION = (
-    "loopycuts_formal_stage2_online_v2_curriculum"
+    "loopycuts_formal_stage2_online_v3_resource_guard"
 )
 
 
@@ -1814,7 +1834,40 @@ def build_formal_stage2_vector_env(
     model: FormalStage2ModelV1,
     executable: Path =
         DEFAULT_EXECUTABLE,
+
+    resource_guard_policy=None,
+
+    resource_guard_sample_interval_seconds: float =
+        PROJECT_STAGE2_RESOURCE_GUARD_SAMPLE_INTERVAL_SECONDS,
+
+    resource_snapshot_reader=None,
+
+    finalize_eval_swap_abort_bytes=None,
 ):
+    """
+    Build one formal Stage-II LoopyCuts environment.
+
+    V3 production behavior enables ResourceGuard by default:
+
+        STEP:
+            warning      8 GiB SwapUsed
+            hard abort  10 GiB continuously for 8 seconds
+            emergency   12 GiB immediately
+
+        FINALIZE_EVAL:
+            hard system-swap cap 25 GiB
+
+        INITIALIZE:
+            unguarded by design; every new model is already
+            gated by the <=6 GiB global preflight/re-arm rule.
+
+    RESOURCE_ABORT terminates only the current model episode.
+
+    Test-only callers may inject a policy/snapshot reader to trigger
+    deterministic synthetic resource events without consuming real
+    system swap.
+    """
+
     executable = Path(
         executable
     )
@@ -1824,21 +1877,90 @@ def build_formal_stage2_vector_env(
             executable
         )
 
+    if resource_guard_policy is None:
+        resource_guard_policy = (
+            ResourceGuardPolicyV1(
+                warning_swap_used_bytes=
+                    PROJECT_STAGE2_RESOURCE_GUARD_WARNING_SWAP_GIB
+                    *
+                    GIB,
+
+                abort_swap_used_bytes=
+                    PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SWAP_GIB
+                    *
+                    GIB,
+
+                emergency_swap_used_bytes=
+                    PROJECT_STAGE2_RESOURCE_GUARD_EMERGENCY_SWAP_GIB
+                    *
+                    GIB,
+
+                rearm_swap_used_bytes=
+                    PROJECT_STAGE2_RESOURCE_GUARD_REARM_SWAP_GIB
+                    *
+                    GIB,
+
+                abort_hold_seconds=
+                    PROJECT_STAGE2_RESOURCE_GUARD_ABORT_HOLD_SECONDS,
+            )
+        )
+
+    if finalize_eval_swap_abort_bytes is None:
+        finalize_eval_swap_abort_bytes = (
+            PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB
+            *
+            GIB
+        )
+
+    finalize_eval_swap_abort_bytes = int(
+        finalize_eval_swap_abort_bytes
+    )
+
+    if finalize_eval_swap_abort_bytes <= 0:
+        raise ValueError(
+            "finalize_eval_swap_abort_bytes must be positive"
+        )
+
+    if not isinstance(
+        resource_guard_policy,
+        ResourceGuardPolicyV1,
+    ):
+        raise TypeError(
+            "resource_guard_policy must be "
+            "ResourceGuardPolicyV1"
+        )
+
     def make_env():
-        return FinalRewardWrapper(
-            FinalizationEvalWrapper(
-                LoopyCutsEnv(
-                    executable=
-                        executable,
+        return (
+            FormalEpisodeCollectorBridgeV1(
+                FinalRewardWrapperV3(
+                    FinalizationEvalWrapper(
+                        LoopyCutsEnv(
+                            executable=
+                                executable,
 
-                    mesh_file=
-                        model.mesh_file,
+                            mesh_file=
+                                model.mesh_file,
 
-                    loop_file=
-                        model.loop_file,
+                            loop_file=
+                                model.loop_file,
 
-                    echo_logs=
-                        False,
+                            echo_logs=
+                                False,
+
+                            resource_guard_policy=
+                                resource_guard_policy,
+
+                            resource_guard_sample_interval_seconds=
+                                resource_guard_sample_interval_seconds,
+
+                            resource_snapshot_reader=
+                                resource_snapshot_reader,
+
+                            finalize_eval_swap_abort_bytes=
+                                finalize_eval_swap_abort_bytes,
+                        )
+                    )
                 )
             )
         )
@@ -1848,7 +1970,6 @@ def build_formal_stage2_vector_env(
             make_env
         ]
     )
-
 
 def _collect_stats_steps(
     stats,
@@ -2067,6 +2188,15 @@ def collect_formal_stage2_model_episode(
     model: FormalStage2ModelV1,
     executable: Path =
         DEFAULT_EXECUTABLE,
+
+    resource_guard_policy=None,
+
+    resource_guard_sample_interval_seconds: float =
+        PROJECT_STAGE2_RESOURCE_GUARD_SAMPLE_INTERVAL_SECONDS,
+
+    resource_snapshot_reader=None,
+
+    finalize_eval_swap_abort_bytes=None,
 ):
     """
     Collect exactly one native LoopyCuts episode, except when the
@@ -2181,6 +2311,20 @@ def collect_formal_stage2_model_episode(
         "NONE"
     )
 
+    resource_abort = False
+
+    resource_guard_state = ""
+    resource_guard_phase = ""
+
+    resource_guard_swap_used_bytes = 0
+    resource_guard_mem_available_bytes = 0
+
+    resource_guard_python_rss_bytes = 0
+    resource_guard_python_swap_bytes = 0
+
+    resource_guard_cpp_rss_bytes = 0
+    resource_guard_cpp_swap_bytes = 0
+
     vector_env = (
         build_formal_stage2_vector_env(
             model=
@@ -2188,6 +2332,18 @@ def collect_formal_stage2_model_episode(
 
             executable=
                 executable,
+
+            resource_guard_policy=
+                resource_guard_policy,
+
+            resource_guard_sample_interval_seconds=
+                resource_guard_sample_interval_seconds,
+
+            resource_snapshot_reader=
+                resource_snapshot_reader,
+
+            finalize_eval_swap_abort_bytes=
+                finalize_eval_swap_abort_bytes,
         )
     )
 
@@ -2348,11 +2504,149 @@ def collect_formal_stage2_model_episode(
             if (
                 reward_version
                 !=
-                "final_v2"
+                REWARD_V3_VERSION
             ):
                 raise FormalTrainingCoreError(
-                    "Formal Stage-II did not collect Reward V2"
+                    "Formal Stage-II did not collect Reward V3"
                 )
+
+            if not hasattr(
+                transition.info,
+                "resource_guard",
+            ):
+                raise FormalTrainingCoreError(
+                    "Stage-II transition lacks fixed "
+                    "ResourceGuard record"
+                )
+
+            resource_abort_step = (
+                _single_bool(
+                    transition
+                    .info
+                    .resource_guard
+                    .triggered
+                )
+            )
+
+            if (
+                resource_abort_step
+                and
+                not terminated
+            ):
+                raise FormalTrainingCoreError(
+                    "RESOURCE_ABORT transition must be terminal"
+                )
+
+            if resource_abort_step:
+                if resource_abort:
+                    raise FormalTrainingCoreError(
+                        "Episode contains multiple "
+                        "RESOURCE_ABORT transitions"
+                    )
+
+                resource_abort = True
+
+                resource_guard_phase = str(
+                    np.asarray(
+                        transition
+                        .info
+                        .resource_guard
+                        .phase
+                    )
+                    .reshape(
+                        -1
+                    )[
+                        0
+                    ]
+                )
+
+                if resource_guard_phase not in {
+                    "STEP",
+                    "FINALIZE_EVAL",
+                }:
+                    raise FormalTrainingCoreError(
+                        "Unknown ResourceGuard phase: "
+                        f"{resource_guard_phase!r}"
+                    )
+
+                resource_guard_state = str(
+                    np.asarray(
+                        transition
+                        .info
+                        .resource_guard
+                        .guard_state
+                    )
+                    .reshape(
+                        -1
+                    )[
+                        0
+                    ]
+                )
+
+                resource_guard_swap_used_bytes = (
+                    _single_int(
+                        transition
+                        .info
+                        .resource_guard
+                        .swap_used_bytes
+                    )
+                )
+
+                resource_guard_mem_available_bytes = (
+                    _single_int(
+                        transition
+                        .info
+                        .resource_guard
+                        .mem_available_bytes
+                    )
+                )
+
+                resource_guard_python_rss_bytes = (
+                    _single_int(
+                        transition
+                        .info
+                        .resource_guard
+                        .python_rss_bytes
+                    )
+                )
+
+                resource_guard_python_swap_bytes = (
+                    _single_int(
+                        transition
+                        .info
+                        .resource_guard
+                        .python_swap_bytes
+                    )
+                )
+
+                resource_guard_cpp_rss_bytes = (
+                    _single_int(
+                        transition
+                        .info
+                        .resource_guard
+                        .cpp_rss_bytes
+                    )
+                )
+
+                resource_guard_cpp_swap_bytes = (
+                    _single_int(
+                        transition
+                        .info
+                        .resource_guard
+                        .cpp_swap_bytes
+                    )
+                )
+
+                if not math.isclose(
+                    reward,
+                    -4.0,
+                    rel_tol=0.0,
+                    abs_tol=0.0,
+                ):
+                    raise FormalTrainingCoreError(
+                        "RESOURCE_ABORT formal reward "
+                        "must be exactly -4"
+                    )
 
             actions.append(
                 action
@@ -2402,10 +2696,35 @@ def collect_formal_stage2_model_episode(
                     "FULL_HEX",
                     "NON_FULL_HEX",
                     "FINALIZATION_CRASH",
+                    "RESOURCE_ABORT",
                 }:
                     raise FormalTrainingCoreError(
-                        "Unknown terminal finalization outcome: "
+                        "Unknown terminal outcome: "
                         f"{finalization_outcome}"
+                    )
+
+                if (
+                    finalization_outcome
+                    ==
+                    "RESOURCE_ABORT"
+                    and
+                    not resource_abort
+                ):
+                    raise FormalTrainingCoreError(
+                        "RESOURCE_ABORT outcome lacks "
+                        "ResourceGuard trigger"
+                    )
+
+                if (
+                    resource_abort
+                    and
+                    finalization_outcome
+                    !=
+                    "RESOURCE_ABORT"
+                ):
+                    raise FormalTrainingCoreError(
+                        "ResourceGuard trigger has inconsistent "
+                        "terminal outcome"
                     )
 
                 break
@@ -2544,6 +2863,51 @@ def collect_formal_stage2_model_episode(
 
         "finalization_outcome":
             finalization_outcome,
+
+        "resource_abort":
+            bool(
+                resource_abort
+            ),
+
+        "resource_guard_phase":
+            str(
+                resource_guard_phase
+            ),
+
+        "resource_guard_state":
+            str(
+                resource_guard_state
+            ),
+
+        "resource_guard_swap_used_bytes":
+            int(
+                resource_guard_swap_used_bytes
+            ),
+
+        "resource_guard_mem_available_bytes":
+            int(
+                resource_guard_mem_available_bytes
+            ),
+
+        "resource_guard_python_rss_bytes":
+            int(
+                resource_guard_python_rss_bytes
+            ),
+
+        "resource_guard_python_swap_bytes":
+            int(
+                resource_guard_python_swap_bytes
+            ),
+
+        "resource_guard_cpp_rss_bytes":
+            int(
+                resource_guard_cpp_rss_bytes
+            ),
+
+        "resource_guard_cpp_swap_bytes":
+            int(
+                resource_guard_cpp_swap_bytes
+            ),
 
         "gradient_updates":
             int(

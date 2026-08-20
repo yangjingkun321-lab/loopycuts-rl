@@ -4,7 +4,7 @@ import math
 
 
 PROTOCOL_VERSION = (
-    "loopycuts_training_protocol_v2_curriculum"
+    "loopycuts_training_protocol_v3_resource_guard"
 )
 
 
@@ -155,11 +155,11 @@ PROJECT_OBSERVATION_VERSION = (
 )
 
 PROJECT_REWARD_VERSION = (
-    "reward_v2"
+    "reward_v3"
 )
 
 PROJECT_RUNTIME_REWARD_VERSION = (
-    "final_v2"
+    "final_v3_resource_guard"
 )
 
 PROJECT_DEMO_QUALITY_VERSION = (
@@ -809,6 +809,111 @@ PROJECT_STAGE2_UPDATES_PER_COMPLETED_EPISODE = (
 # represented as terminated/truncated in the MDP.
 PROJECT_STAGE2_BUDGET_BOUNDARY_POLICY = (
     "STOP_AT_EXACT_TRANSITION_BUDGET_WITHOUT_SYNTHETIC_TERMINAL_OR_TRUNCATION"
+)
+
+
+# ================================================================
+# STAGE-II RESOURCE-GUARD PROTOCOL
+#
+# Project-specific engineering / RL adaptation.
+#
+# This is NOT a Zhang et al. 2025 paper parameter.
+#
+# The guard defines trajectories that require sustained excessive
+# system swapping as resource failures.  RESOURCE_ABORT terminates
+# only the current LoopyCuts model episode; it does not terminate
+# the complete formal training run.
+# ================================================================
+
+PROJECT_STAGE2_RESOURCE_GUARD_VERSION = (
+    "loopycuts_resource_guard_v1"
+)
+
+# Resource sampling cadence while a guarded C++ operation is
+# blocking. This applies to STEP ResourceGuard monitoring and the
+# independent FINALIZE_EVAL 25-GiB swap-cap monitor.
+PROJECT_STAGE2_RESOURCE_GUARD_SAMPLE_INTERVAL_SECONDS = 1.0
+
+# Telemetry-only warning threshold.
+PROJECT_STAGE2_RESOURCE_GUARD_WARNING_SWAP_GIB = 8
+
+# Hard threshold:
+#
+# SwapUsed must remain >=10 GiB continuously for 8 seconds.
+PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SWAP_GIB = 10
+
+PROJECT_STAGE2_RESOURCE_GUARD_ABORT_HOLD_SECONDS = 8.0
+
+# Emergency threshold:
+#
+# reaching >=12 GiB terminates the current model immediately,
+# without waiting for the 8-second hold.
+PROJECT_STAGE2_RESOURCE_GUARD_EMERGENCY_SWAP_GIB = 12
+
+# FINALIZE_EVAL deliberately does NOT use the STEP-time
+# 10-GiB/8-second or 12-GiB termination thresholds.
+#
+# It has one independent machine-survival fuse:
+#
+#     system SwapUsed >= 25 GiB
+#
+# At this point the terminal Stage-II STEP has already completed.
+# Therefore RESOURCE_ABORT is attached to that SAME transition and
+# no additional RL transition is created.
+PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB = 25
+
+# INITIALIZE is intentionally outside ResourceGuard.
+#
+# Every new formal model already requires the global <=6-GiB
+# preflight/re-arm condition before C++ is launched.
+PROJECT_STAGE2_RESOURCE_GUARD_INITIALIZE_ENABLED = False
+
+# FINALIZE_EVAL RESOURCE_ABORT never creates transition N+1.
+PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_ADDS_TRANSITION = False
+
+# Every new formal model episode must begin with global SwapUsed
+# <=6 GiB.
+PROJECT_STAGE2_RESOURCE_GUARD_REARM_SWAP_GIB = 6
+
+PROJECT_STAGE2_RESOURCE_GUARD_REARM_TIMEOUT_SECONDS = 60.0
+
+PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SCOPE = (
+    "CURRENT_MODEL_EPISODE_ONLY"
+)
+
+PROJECT_STAGE2_RESOURCE_GUARD_TERMINAL_OUTCOME = (
+    "RESOURCE_ABORT"
+)
+
+PROJECT_STAGE2_RESOURCE_GUARD_TERMINAL_REWARD = -4.0
+
+# STEP-time RESOURCE_ABORT corresponds to one real attempted agent
+# action and therefore contributes exactly one real transition.
+#
+# FINALIZE_EVAL RESOURCE_ABORT is different: the terminal STEP
+# already exists, so its RESOURCE_ABORT outcome is attached to that
+# same transition and does not create another transition.
+PROJECT_STAGE2_RESOURCE_GUARD_ABORT_COUNTS_AS_TRANSITION = True
+
+# No dense memory shaping is used in V3.  Only the terminal
+# RESOURCE_ABORT penalty is added to Reward V2-compatible geometry
+# rewards.
+PROJECT_STAGE2_RESOURCE_GUARD_DENSE_SHAPING_ENABLED = False
+
+# RESOURCE_ABORT must be durably checkpointed immediately after
+# episode accounting, independently of the normal 2500-transition
+# periodic checkpoint cadence.
+PROJECT_STAGE2_RESOURCE_GUARD_IMMEDIATE_CHECKPOINT = True
+
+# Resource baseline must be safe before every model starts, including
+# after normally completed episodes.
+PROJECT_STAGE2_RESOURCE_GUARD_PREFLIGHT_REARM_REQUIRED = True
+
+# Formal one-episode collectors suppress Tianshou's post-terminal
+# automatic reset so an unused replacement C++ process is never
+# launched.
+PROJECT_STAGE2_RESOURCE_GUARD_COLLECTOR_AUTORESET_POLICY = (
+    "SUPPRESS_POST_TERMINAL_AUTORESET"
 )
 
 

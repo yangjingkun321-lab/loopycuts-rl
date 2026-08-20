@@ -163,7 +163,7 @@ def main():
         assert (
             FORMAL_RUN_ARTIFACTS_VERSION
             ==
-            "loopycuts_formal_run_artifacts_v2_curriculum"
+            "loopycuts_formal_run_artifacts_v3_resource_guard"
         )
 
         manifest = (
@@ -696,7 +696,7 @@ def main():
 
 
         print("=" * 100)
-        print("FORMAL RUN ARTIFACTS V2 CURRICULUM")
+        print("FORMAL RUN ARTIFACTS V3 RESOURCE GUARD")
         print("=" * 100)
 
         print(

@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 import argparse
+import time
 
 from pathlib import Path
 from typing import Callable, Any
+
+
+from bridge.resource_guard_v1 import (
+    GIB,
+    ResourceGuardPolicyV1,
+    read_resource_snapshot,
+)
 
 
 from training.formal_checkpoint_v1 import (
@@ -42,6 +50,13 @@ from training.formal_training_v1 import (
 )
 
 from training.protocol_v1 import (
+    PROJECT_STAGE2_RESOURCE_GUARD_WARNING_SWAP_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SWAP_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_ABORT_HOLD_SECONDS,
+    PROJECT_STAGE2_RESOURCE_GUARD_EMERGENCY_SWAP_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_REARM_SWAP_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_SAMPLE_INTERVAL_SECONDS,
+    PROJECT_STAGE2_RESOURCE_GUARD_REARM_TIMEOUT_SECONDS,
     PROJECT_FORMAL_TRAINING_SEEDS,
 
     PROJECT_STAGE1_GRADIENT_STEPS,
@@ -52,7 +67,7 @@ from training.protocol_v1 import (
 
 
 FORMAL_RUNNER_VERSION = (
-    "loopycuts_formal_runner_v2_curriculum"
+    "loopycuts_formal_runner_v3_resource_guard"
 )
 
 
@@ -76,9 +91,31 @@ FORMAL_CHECKPOINT_INTERVAL_ENV_STEPS = (
 )
 
 
+# ----------------------------------------------------------------------
+# ResourceGuard post-abort recovery.
+#
+# RESOURCE_ABORT itself terminates only the CURRENT LoopyCuts model.
+#
+# Before another model may start, global SwapUsed must return to the
+# ResourceGuard re-arm threshold (<= 6 GiB).
+#
+# If the machine cannot recover within the timeout, the already-forced
+# checkpoint remains durable and the runner exits instead of starting
+# another C++ process under inherited resource pressure.
+# ----------------------------------------------------------------------
+
+FORMAL_RESOURCE_REARM_SAMPLE_INTERVAL_SECONDS = (
+    PROJECT_STAGE2_RESOURCE_GUARD_SAMPLE_INTERVAL_SECONDS
+)
+
+FORMAL_RESOURCE_REARM_TIMEOUT_SECONDS = (
+    PROJECT_STAGE2_RESOURCE_GUARD_REARM_TIMEOUT_SECONDS
+)
+
+
 DEFAULT_FORMAL_RUN_ROOT = Path(
     "/home/yjk/loopycuts_test/"
-    "formal_training_v2"
+    "formal_training_v3"
 )
 
 CHECKPOINT_DIRECTORY_NAME = (
@@ -539,6 +576,239 @@ def ensure_loaded_checkpoint_event(
     }
 
 
+def wait_for_formal_resource_rearm(
+    *,
+    resource_guard_policy=None,
+    resource_snapshot_reader=None,
+
+    sample_interval_seconds: float =
+        FORMAL_RESOURCE_REARM_SAMPLE_INTERVAL_SECONDS,
+
+    timeout_seconds: float =
+        FORMAL_RESOURCE_REARM_TIMEOUT_SECONDS,
+
+    sleep_fn=None,
+    monotonic_fn=None,
+
+    emit_logs: bool =
+        True,
+):
+    """
+    Wait until the machine is safe to start the NEXT LoopyCuts model.
+
+    Production criterion:
+
+        SwapUsed <= 6 GiB
+
+    RESOURCE_ABORT has already terminated the previous C++ episode
+    before this helper is entered.
+
+    This helper never kills another process.
+    """
+
+    if resource_guard_policy is None:
+        resource_guard_policy = (
+            ResourceGuardPolicyV1(
+                warning_swap_used_bytes=
+                    PROJECT_STAGE2_RESOURCE_GUARD_WARNING_SWAP_GIB
+                    *
+                    GIB,
+
+                abort_swap_used_bytes=
+                    PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SWAP_GIB
+                    *
+                    GIB,
+
+                emergency_swap_used_bytes=
+                    PROJECT_STAGE2_RESOURCE_GUARD_EMERGENCY_SWAP_GIB
+                    *
+                    GIB,
+
+                rearm_swap_used_bytes=
+                    PROJECT_STAGE2_RESOURCE_GUARD_REARM_SWAP_GIB
+                    *
+                    GIB,
+
+                abort_hold_seconds=
+                    PROJECT_STAGE2_RESOURCE_GUARD_ABORT_HOLD_SECONDS,
+            )
+        )
+
+    if not isinstance(
+        resource_guard_policy,
+        ResourceGuardPolicyV1,
+    ):
+        raise TypeError(
+            "resource_guard_policy must be "
+            "ResourceGuardPolicyV1"
+        )
+
+    if resource_snapshot_reader is None:
+        resource_snapshot_reader = (
+            read_resource_snapshot
+        )
+
+    if not callable(
+        resource_snapshot_reader
+    ):
+        raise TypeError(
+            "resource_snapshot_reader must be callable"
+        )
+
+    sample_interval_seconds = float(
+        sample_interval_seconds
+    )
+
+    timeout_seconds = float(
+        timeout_seconds
+    )
+
+    if sample_interval_seconds <= 0.0:
+        raise ValueError(
+            "resource re-arm sample interval "
+            "must be positive"
+        )
+
+    if timeout_seconds <= 0.0:
+        raise ValueError(
+            "resource re-arm timeout must be positive"
+        )
+
+    if sleep_fn is None:
+        sleep_fn = time.sleep
+
+    if monotonic_fn is None:
+        monotonic_fn = time.monotonic
+
+    start = float(
+        monotonic_fn()
+    )
+
+    sample_count = 0
+
+    while True:
+        try:
+            snapshot = (
+                resource_snapshot_reader()
+            )
+
+        except Exception as exc:
+            raise FormalRunnerError(
+                "Failed to read system resources "
+                "while waiting for ResourceGuard re-arm"
+            ) from exc
+
+        sample_count += 1
+
+        now = float(
+            monotonic_fn()
+        )
+
+        elapsed = max(
+            0.0,
+            now - start,
+        )
+
+        swap_used_gib = (
+            float(
+                snapshot.swap_used_bytes
+            )
+            /
+            float(
+                GIB
+            )
+        )
+
+        if (
+            resource_guard_policy.can_rearm(
+                snapshot
+            )
+        ):
+            if (
+                emit_logs
+                and
+                sample_count > 1
+            ):
+                print(
+                    "formal-runner resource-rearm "
+                    f"READY "
+                    f"swap={swap_used_gib:.3f}GiB "
+                    f"wait={elapsed:.1f}s "
+                    f"samples={sample_count}"
+                )
+
+            return {
+                "rearmed":
+                    True,
+
+                "wait_seconds":
+                    float(
+                        elapsed
+                    ),
+
+                "sample_count":
+                    int(
+                        sample_count
+                    ),
+
+                "swap_used_bytes":
+                    int(
+                        snapshot.swap_used_bytes
+                    ),
+
+                "mem_available_bytes":
+                    int(
+                        snapshot.mem_available_bytes
+                    ),
+
+                "python_rss_bytes":
+                    int(
+                        snapshot
+                        .python_memory
+                        .rss_bytes
+                    ),
+
+                "python_swap_bytes":
+                    int(
+                        snapshot
+                        .python_memory
+                        .swap_bytes
+                    ),
+            }
+
+        if elapsed >= timeout_seconds:
+            raise FormalRunnerError(
+                "ResourceGuard current episode was safely "
+                "checkpointed, but system resources did not "
+                "re-arm before timeout: "
+                f"SwapUsed={swap_used_gib:.3f} GiB, "
+                f"required<=6 GiB, "
+                f"timeout={timeout_seconds:.1f}s. "
+                "Do not start another LoopyCuts model until "
+                "resources recover."
+            )
+
+        if (
+            emit_logs
+            and
+            (
+                sample_count == 1
+                or
+                sample_count % 5 == 0
+            )
+        ):
+            print(
+                "formal-runner resource-rearm "
+                f"WAIT "
+                f"swap={swap_used_gib:.3f}GiB "
+                f"elapsed={elapsed:.1f}s"
+            )
+
+        sleep_fn(
+            sample_interval_seconds
+        )
+
+
 def _run_stage2_loop(
     *,
     core: FormalTrainingCoreV1,
@@ -564,6 +834,21 @@ def _run_stage2_loop(
     # Test-only interruption hook. The production public entry point
     # always leaves this as None.
     max_new_episode_executions: int | None = None,
+
+    resource_rearm_policy=None,
+    resource_snapshot_reader=None,
+
+    resource_rearm_sample_interval_seconds: float =
+        FORMAL_RESOURCE_REARM_SAMPLE_INTERVAL_SECONDS,
+
+    resource_rearm_timeout_seconds: float =
+        FORMAL_RESOURCE_REARM_TIMEOUT_SECONDS,
+
+    resource_rearm_sleep_fn=None,
+    resource_rearm_monotonic_fn=None,
+
+    resource_rearm_emit_logs: bool =
+        True,
 ):
     if episode_runner is None:
         def production_episode_runner(
@@ -600,6 +885,12 @@ def _run_stage2_loop(
 
     latest_checkpoint_result = None
 
+    resource_abort_episode_count = 0
+
+    resource_rearm_wait_seconds_total = 0.0
+
+    latest_resource_rearm_result = None
+
     while (
         stage2_state.total_environment_steps
         <
@@ -614,6 +905,51 @@ def _run_stage2_loop(
             max_new_episode_executions
         ):
             break
+
+        # --------------------------------------------------------
+        # Every new LoopyCuts model starts from a bounded global
+        # resource baseline.
+        #
+        # This protects the 10-GiB RESOURCE_ABORT threshold from
+        # depending on residual swap pressure left by the previous
+        # episode, even when that previous episode ended normally.
+        #
+        # With normal resources this is a single /proc read and
+        # returns immediately without sleeping.
+        # --------------------------------------------------------
+
+        latest_resource_rearm_result = (
+            wait_for_formal_resource_rearm(
+                resource_guard_policy=
+                    resource_rearm_policy,
+
+                resource_snapshot_reader=
+                    resource_snapshot_reader,
+
+                sample_interval_seconds=
+                    resource_rearm_sample_interval_seconds,
+
+                timeout_seconds=
+                    resource_rearm_timeout_seconds,
+
+                sleep_fn=
+                    resource_rearm_sleep_fn,
+
+                monotonic_fn=
+                    resource_rearm_monotonic_fn,
+
+                emit_logs=
+                    resource_rearm_emit_logs,
+            )
+        )
+
+        resource_rearm_wait_seconds_total += (
+            float(
+                latest_resource_rearm_result[
+                    "wait_seconds"
+                ]
+            )
+        )
 
         record = episode_runner(
             core,
@@ -652,16 +988,43 @@ def _run_stage2_loop(
             f"updates={stage2_state.total_gradient_updates}"
         )
 
-        if checkpoint_due(
-            last_checkpoint_environment_steps=
-                last_checkpoint_environment_steps,
+        resource_abort = bool(
+            record.get(
+                "resource_abort",
+                False,
+            )
+        )
 
-            current_environment_steps=
-                stage2_state.total_environment_steps,
-
-            interval_environment_steps=
-                checkpoint_interval_environment_steps,
+        if (
+            resource_abort
+            and
+            record.get(
+                "finalization_outcome"
+            )
+            !=
+            "RESOURCE_ABORT"
         ):
+            raise FormalRunnerError(
+                "resource_abort record has inconsistent "
+                "terminal outcome"
+            )
+
+        checkpoint_required = (
+            resource_abort
+            or
+            checkpoint_due(
+                last_checkpoint_environment_steps=
+                    last_checkpoint_environment_steps,
+
+                current_environment_steps=
+                    stage2_state.total_environment_steps,
+
+                interval_environment_steps=
+                    checkpoint_interval_environment_steps,
+            )
+        )
+
+        if checkpoint_required:
             latest_checkpoint_result = (
                 save_and_record_formal_checkpoint(
                     run_directory=
@@ -685,6 +1048,71 @@ def _run_stage2_loop(
                 stage2_state.total_environment_steps
             )
 
+        if resource_abort:
+            resource_abort_episode_count += 1
+
+            if (
+                latest_checkpoint_result
+                is None
+                or
+                last_checkpoint_environment_steps
+                !=
+                stage2_state.total_environment_steps
+            ):
+                raise FormalRunnerError(
+                    "RESOURCE_ABORT must have an immediate "
+                    "checkpoint at the current environment-step "
+                    "boundary"
+                )
+
+            print(
+                "formal-runner RESOURCE_ABORT checkpointed "
+                f"episode={record['episode_index']} "
+                f"model={record['model']} "
+                f"env={stage2_state.total_environment_steps}"
+            )
+
+            # If RESOURCE_ABORT itself consumed the exact final
+            # transition, the run is already complete and no next
+            # C++ model will be started. Re-arm is unnecessary.
+            if (
+                stage2_state.total_environment_steps
+                <
+                PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS
+            ):
+                latest_resource_rearm_result = (
+                    wait_for_formal_resource_rearm(
+                        resource_guard_policy=
+                            resource_rearm_policy,
+
+                        resource_snapshot_reader=
+                            resource_snapshot_reader,
+
+                        sample_interval_seconds=
+                            resource_rearm_sample_interval_seconds,
+
+                        timeout_seconds=
+                            resource_rearm_timeout_seconds,
+
+                        sleep_fn=
+                            resource_rearm_sleep_fn,
+
+                        monotonic_fn=
+                            resource_rearm_monotonic_fn,
+
+                        emit_logs=
+                            resource_rearm_emit_logs,
+                    )
+                )
+
+                resource_rearm_wait_seconds_total += (
+                    float(
+                        latest_resource_rearm_result[
+                            "wait_seconds"
+                        ]
+                    )
+                )
+
     return {
         "executed_episode_count":
             executed,
@@ -700,6 +1128,19 @@ def _run_stage2_loop(
 
         "latest_checkpoint_result":
             latest_checkpoint_result,
+
+        "resource_abort_episode_count":
+            int(
+                resource_abort_episode_count
+            ),
+
+        "resource_rearm_wait_seconds_total":
+            float(
+                resource_rearm_wait_seconds_total
+            ),
+
+        "latest_resource_rearm_result":
+            latest_resource_rearm_result,
 
         "budget_complete":
             (
@@ -1484,7 +1925,7 @@ def main():
     )
 
     print("=" * 100)
-    print("LOOPYCUTS FORMAL TRAINING RUNNER V2 CURRICULUM")
+    print("LOOPYCUTS FORMAL TRAINING RUNNER V3 RESOURCE GUARD")
     print("=" * 100)
 
     print(

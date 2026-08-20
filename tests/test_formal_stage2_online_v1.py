@@ -80,7 +80,7 @@ def main():
     assert (
         FORMAL_STAGE2_ONLINE_VERSION
         ==
-        "loopycuts_formal_stage2_online_v2_curriculum"
+        "loopycuts_formal_stage2_online_v3_resource_guard"
     )
 
     assert (

@@ -462,7 +462,7 @@ def main():
     assert (
         FORMAL_RUNNER_VERSION
         ==
-        "loopycuts_formal_runner_v2_curriculum"
+        "loopycuts_formal_runner_v3_resource_guard"
     )
 
     assert (
@@ -878,7 +878,7 @@ def main():
 
 
         print("=" * 104)
-        print("FORMAL RUNNER V2 CURRICULUM INTERRUPTION / RESUME")
+        print("FORMAL RUNNER V3 RESOURCE GUARD INTERRUPTION / RESUME")
         print("=" * 104)
 
         print(

@@ -14,6 +14,11 @@ OUTCOME_FULL_HEX = "FULL_HEX"
 OUTCOME_NON_FULL_HEX = "NON_FULL_HEX"
 OUTCOME_CRASH = "FINALIZATION_CRASH"
 
+# ResourceGuard termination is a distinct RL/environment outcome.
+# It is NOT a geometric finalization result and is never produced
+# by evaluate_terminal_finalization().
+OUTCOME_RESOURCE_ABORT = "RESOURCE_ABORT"
+
 
 class FinalizationOutcomeError(
     RuntimeError
