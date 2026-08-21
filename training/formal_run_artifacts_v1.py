@@ -56,6 +56,13 @@ from training.protocol_v1 import (
     PROJECT_STAGE2_RESOURCE_GUARD_IMMEDIATE_CHECKPOINT,
     PROJECT_STAGE2_RESOURCE_GUARD_PREFLIGHT_REARM_REQUIRED,
     PROJECT_STAGE2_RESOURCE_GUARD_COLLECTOR_AUTORESET_POLICY,
+
+    PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_COMPAT_ENABLED,
+    PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_PHASE,
+    PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_SIGNAL,
+    PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_SIGNATURE,
+    PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_GUARD_STATE,
+
     PROTOCOL_VERSION,
 
     PROJECT_BC_WEIGHT,
@@ -87,23 +94,23 @@ from training.protocol_v1 import (
 
 
 FORMAL_RUN_ARTIFACTS_VERSION = (
-    "loopycuts_formal_run_artifacts_v3_resource_guard"
+    "loopycuts_formal_run_artifacts_v4_cpp_rss_compat"
 )
 
 FORMAL_RUN_MANIFEST_SCHEMA = (
-    "loopycuts_formal_run_manifest_v3_resource_guard"
+    "loopycuts_formal_run_manifest_v4_cpp_rss_compat"
 )
 
 FORMAL_RUN_EVENT_SCHEMA = (
-    "loopycuts_formal_run_event_v3_resource_guard"
+    "loopycuts_formal_run_event_v4_cpp_rss_compat"
 )
 
 RUN_MANIFEST_FILENAME = (
-    "run_manifest_v3.json"
+    "run_manifest_v4.json"
 )
 
 EVENT_LOG_FILENAME = (
-    "events_v3.jsonl"
+    "events_v4.jsonl"
 )
 
 
@@ -207,6 +214,23 @@ def formal_resource_guard_manifest_contract():
 
         "collector_autoreset_policy":
             PROJECT_STAGE2_RESOURCE_GUARD_COLLECTOR_AUTORESET_POLICY,
+
+        "cpp_rss_assert_compat_enabled":
+            bool(
+                PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_COMPAT_ENABLED
+            ),
+
+        "cpp_rss_assert_phase":
+            PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_PHASE,
+
+        "cpp_rss_assert_signal":
+            PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_SIGNAL,
+
+        "cpp_rss_assert_signature":
+            PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_SIGNATURE,
+
+        "cpp_rss_assert_guard_state":
+            PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_GUARD_STATE,
     }
 
 

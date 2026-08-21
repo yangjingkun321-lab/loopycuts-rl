@@ -163,7 +163,7 @@ def main():
         assert (
             FORMAL_RUN_ARTIFACTS_VERSION
             ==
-            "loopycuts_formal_run_artifacts_v3_resource_guard"
+            "loopycuts_formal_run_artifacts_v4_cpp_rss_compat"
         )
 
         manifest = (
@@ -696,7 +696,7 @@ def main():
 
 
         print("=" * 100)
-        print("FORMAL RUN ARTIFACTS V3 RESOURCE GUARD")
+        print("FORMAL RUN ARTIFACTS V4 CPP RSS COMPAT")
         print("=" * 100)
 
         print(

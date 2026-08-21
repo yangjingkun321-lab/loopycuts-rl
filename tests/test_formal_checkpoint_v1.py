@@ -334,7 +334,7 @@ def main():
         assert (
             FORMAL_CHECKPOINT_VERSION
             ==
-            "loopycuts_formal_checkpoint_v3_resource_guard"
+            "loopycuts_formal_checkpoint_v4_cpp_rss_compat"
         )
 
         assert checkpoint.is_file()
@@ -729,7 +729,7 @@ def main():
 
 
         print("=" * 100)
-        print("FORMAL CHECKPOINT V3 RESOURCE GUARD ROUND-TRIP")
+        print("FORMAL CHECKPOINT V4 CPP RSS COMPAT ROUND-TRIP")
         print("=" * 100)
 
         print(

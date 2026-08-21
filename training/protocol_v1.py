@@ -4,7 +4,7 @@ import math
 
 
 PROTOCOL_VERSION = (
-    "loopycuts_training_protocol_v3_resource_guard"
+    "loopycuts_training_protocol_v4_cpp_rss_compat"
 )
 
 
@@ -829,6 +829,45 @@ PROJECT_STAGE2_RESOURCE_GUARD_VERSION = (
     "loopycuts_resource_guard_v1"
 )
 
+
+# ------------------------------------------------------------------
+# Formal V4 compatibility with the original LoopyCuts C++ RSS guard.
+#
+# The upstream cutter contains several synchronous assertions:
+#
+#     assert(memory_usage_in_giga_bytes()<10);
+#
+# A legal RL STEP may therefore terminate the C++ child with SIGABRT
+# before the external SwapUsed-based ResourceGuard reaches its own
+# abort condition.
+#
+# Formal V4 recognizes ONLY this proven legacy resource assertion as
+# RESOURCE_ABORT. Arbitrary C++ assertions / SIGABRT / SIGSEGV remain
+# fatal infrastructure or implementation failures.
+#
+# This compatibility rule does NOT introduce a proactive Python RSS
+# threshold and does NOT modify the existing 8/10/12-GiB Swap policy.
+# ------------------------------------------------------------------
+
+PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_COMPAT_ENABLED = True
+
+PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_PHASE = (
+    "STEP"
+)
+
+PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_SIGNAL = (
+    "SIGABRT"
+)
+
+PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_SIGNATURE = (
+    "memory_usage_in_giga_bytes()<10"
+)
+
+PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_GUARD_STATE = (
+    "RESOURCE_ABORT_CPP_RSS_LIMIT"
+)
+
+
 # Resource sampling cadence while a guarded C++ operation is
 # blocking. This applies to STEP ResourceGuard monitoring and the
 # independent FINALIZE_EVAL 25-GiB swap-cap monitor.
@@ -895,7 +934,7 @@ PROJECT_STAGE2_RESOURCE_GUARD_TERMINAL_REWARD = -4.0
 # same transition and does not create another transition.
 PROJECT_STAGE2_RESOURCE_GUARD_ABORT_COUNTS_AS_TRANSITION = True
 
-# No dense memory shaping is used in V3.  Only the terminal
+# No dense memory shaping is used in Reward V3. Only the terminal
 # RESOURCE_ABORT penalty is added to Reward V2-compatible geometry
 # rewards.
 PROJECT_STAGE2_RESOURCE_GUARD_DENSE_SHAPING_ENABLED = False

@@ -67,7 +67,7 @@ from training.protocol_v1 import (
 
 
 FORMAL_RUNNER_VERSION = (
-    "loopycuts_formal_runner_v3_resource_guard"
+    "loopycuts_formal_runner_v4_cpp_rss_compat"
 )
 
 
@@ -115,7 +115,7 @@ FORMAL_RESOURCE_REARM_TIMEOUT_SECONDS = (
 
 DEFAULT_FORMAL_RUN_ROOT = Path(
     "/home/yjk/loopycuts_test/"
-    "formal_training_v3"
+    "formal_training_v4"
 )
 
 CHECKPOINT_DIRECTORY_NAME = (
@@ -1925,7 +1925,7 @@ def main():
     )
 
     print("=" * 100)
-    print("LOOPYCUTS FORMAL TRAINING RUNNER V3 RESOURCE GUARD")
+    print("LOOPYCUTS FORMAL TRAINING RUNNER V4 CPP RSS COMPAT")
     print("=" * 100)
 
     print(

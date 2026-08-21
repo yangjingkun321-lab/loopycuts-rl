@@ -29,6 +29,11 @@ from bridge.resource_guard_v1 import (
     ResourceGuardPolicyV1,
 )
 
+from bridge.cpp_client import (
+    CPP_LEGACY_RSS_ASSERT_GUARD_STATE,
+    CPP_LEGACY_RSS_ASSERT_SIGNATURE,
+)
+
 from rewards.reward_v3 import (
     DEFAULT_REWARD_V3_WEIGHTS,
     REWARD_V3_VERSION,
@@ -76,6 +81,12 @@ from training.protocol_v1 import (
     PROJECT_STAGE2_RESOURCE_GUARD_IMMEDIATE_CHECKPOINT,
     PROJECT_STAGE2_RESOURCE_GUARD_PREFLIGHT_REARM_REQUIRED,
     PROJECT_STAGE2_RESOURCE_GUARD_COLLECTOR_AUTORESET_POLICY,
+
+    PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_COMPAT_ENABLED,
+    PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_PHASE,
+    PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_SIGNAL,
+    PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_SIGNATURE,
+    PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_GUARD_STATE,
 )
 
 from training.run_formal_training_v1 import (
@@ -90,7 +101,7 @@ def main():
     assert (
         PROTOCOL_VERSION
         ==
-        "loopycuts_training_protocol_v3_resource_guard"
+        "loopycuts_training_protocol_v4_cpp_rss_compat"
     )
 
     assert (
@@ -110,56 +121,56 @@ def main():
     assert (
         FORMAL_STAGE2_ONLINE_VERSION
         ==
-        "loopycuts_formal_stage2_online_v3_resource_guard"
+        "loopycuts_formal_stage2_online_v4_cpp_rss_compat"
     )
 
     assert (
         FORMAL_RUNNER_VERSION
         ==
-        "loopycuts_formal_runner_v3_resource_guard"
+        "loopycuts_formal_runner_v4_cpp_rss_compat"
     )
 
     assert (
         FORMAL_CHECKPOINT_VERSION
         ==
-        "loopycuts_formal_checkpoint_v3_resource_guard"
+        "loopycuts_formal_checkpoint_v4_cpp_rss_compat"
     )
 
     assert (
         FORMAL_RUN_ARTIFACTS_VERSION
         ==
-        "loopycuts_formal_run_artifacts_v3_resource_guard"
+        "loopycuts_formal_run_artifacts_v4_cpp_rss_compat"
     )
 
     assert (
         FORMAL_RUN_MANIFEST_SCHEMA
         ==
-        "loopycuts_formal_run_manifest_v3_resource_guard"
+        "loopycuts_formal_run_manifest_v4_cpp_rss_compat"
     )
 
     assert (
         FORMAL_RUN_EVENT_SCHEMA
         ==
-        "loopycuts_formal_run_event_v3_resource_guard"
+        "loopycuts_formal_run_event_v4_cpp_rss_compat"
     )
 
     assert (
         RUN_MANIFEST_FILENAME
         ==
-        "run_manifest_v3.json"
+        "run_manifest_v4.json"
     )
 
     assert (
         EVENT_LOG_FILENAME
         ==
-        "events_v3.jsonl"
+        "events_v4.jsonl"
     )
 
     assert (
         DEFAULT_FORMAL_RUN_ROOT
         ==
         Path(
-            "/home/yjk/loopycuts_test/formal_training_v3"
+            "/home/yjk/loopycuts_test/formal_training_v4"
         )
     )
 
@@ -279,6 +290,39 @@ def main():
         "SUPPRESS_POST_TERMINAL_AUTORESET"
     )
 
+    assert (
+        PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_COMPAT_ENABLED
+        is True
+    )
+
+    assert (
+        PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_PHASE
+        ==
+        "STEP"
+    )
+
+    assert (
+        PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_SIGNAL
+        ==
+        "SIGABRT"
+    )
+
+    assert (
+        PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_SIGNATURE
+        ==
+        CPP_LEGACY_RSS_ASSERT_SIGNATURE
+        ==
+        "memory_usage_in_giga_bytes()<10"
+    )
+
+    assert (
+        PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_GUARD_STATE
+        ==
+        CPP_LEGACY_RSS_ASSERT_GUARD_STATE
+        ==
+        "RESOURCE_ABORT_CPP_RSS_LIMIT"
+    )
+
 
     # ============================================================
     # Generic implementation defaults must match the formal freeze.
@@ -334,6 +378,65 @@ def main():
 
     manifest_contract = (
         formal_resource_guard_manifest_contract()
+    )
+
+    assert (
+        checkpoint_contract[
+            "cpp_rss_assert_compat_enabled"
+        ]
+        ==
+        manifest_contract[
+            "cpp_rss_assert_compat_enabled"
+        ]
+        is True
+    )
+
+    assert (
+        checkpoint_contract[
+            "cpp_rss_assert_phase"
+        ]
+        ==
+        manifest_contract[
+            "cpp_rss_assert_phase"
+        ]
+        ==
+        "STEP"
+    )
+
+    assert (
+        checkpoint_contract[
+            "cpp_rss_assert_signal"
+        ]
+        ==
+        manifest_contract[
+            "cpp_rss_assert_signal"
+        ]
+        ==
+        "SIGABRT"
+    )
+
+    assert (
+        checkpoint_contract[
+            "cpp_rss_assert_signature"
+        ]
+        ==
+        manifest_contract[
+            "cpp_rss_assert_signature"
+        ]
+        ==
+        "memory_usage_in_giga_bytes()<10"
+    )
+
+    assert (
+        checkpoint_contract[
+            "cpp_rss_assert_guard_state"
+        ]
+        ==
+        manifest_contract[
+            "cpp_rss_assert_guard_state"
+        ]
+        ==
+        "RESOURCE_ABORT_CPP_RSS_LIMIT"
     )
 
     assert (
@@ -442,7 +545,7 @@ def main():
 
 
     print(
-        "PASS: Training Protocol V3 ResourceGuard identity is frozen"
+        "PASS: Training Protocol V4 CPP RSS compatibility identity is frozen"
     )
 
     print(
@@ -470,11 +573,11 @@ def main():
     )
 
     print(
-        "PASS: V3 artifacts use isolated manifest/event filenames"
+        "PASS: V4 artifacts use isolated manifest/event filenames"
     )
 
     print(
-        "PASS: V3 formal runs use isolated formal_training_v3 root"
+        "PASS: V4 formal runs use isolated formal_training_v4 root"
     )
 
 

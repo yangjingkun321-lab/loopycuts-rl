@@ -1201,7 +1201,7 @@ def enter_formal_stage2(
 # ======================================================================
 
 FORMAL_STAGE2_ONLINE_VERSION = (
-    "loopycuts_formal_stage2_online_v3_resource_guard"
+    "loopycuts_formal_stage2_online_v4_cpp_rss_compat"
 )
 
 

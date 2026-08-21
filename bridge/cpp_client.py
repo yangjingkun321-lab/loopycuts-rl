@@ -94,6 +94,29 @@ class RLServerProcessError(RuntimeError):
                 f"{expected_prefix}"
             )
 
+        # Preserve the useful C++ failure context directly in the
+        # exception message so an unexpected fatal STEP/finalization
+        # failure is diagnosable from the formal console log without
+        # requiring a deterministic replay solely to recover stderr.
+        if self.lines:
+            tail = (
+                self.lines[
+                    -50:
+                ]
+            )
+
+            message += (
+                "\n"
+                "----- C++ stdout/stderr tail -----\n"
+                +
+                "\n".join(
+                    tail
+                )
+                +
+                "\n"
+                "----- end C++ stdout/stderr tail -----"
+            )
+
         super().__init__(message)
 
 
@@ -179,6 +202,15 @@ class RLServerResourceGuardError(
 
 FINALIZE_EVAL_SWAP_CAP_GUARD_STATE = (
     "RESOURCE_ABORT_FINALIZE_EVAL_SWAP_CAP"
+)
+
+
+CPP_LEGACY_RSS_ASSERT_GUARD_STATE = (
+    "RESOURCE_ABORT_CPP_RSS_LIMIT"
+)
+
+CPP_LEGACY_RSS_ASSERT_SIGNATURE = (
+    "memory_usage_in_giga_bytes()<10"
 )
 
 
@@ -903,6 +935,95 @@ class LoopyCutsClient:
 
                         snapshot=
                             guard_record.snapshot,
+
+                        return_code=
+                            return_code,
+                    )
+
+                # --------------------------------------------------
+                # LoopyCuts legacy C++ RSS hard limit.
+                #
+                # The original cutter contains:
+                #
+                #     assert(memory_usage_in_giga_bytes()<10);
+                #
+                # During a guarded STEP this may abort the C++ process
+                # before the external swap-based ResourceGuard reaches
+                # its own abort condition.
+                #
+                # Normalize ONLY this already-proven resource failure
+                # into the existing STEP RESOURCE_ABORT semantics.
+                #
+                # Do NOT classify arbitrary SIGABRT/SIGSEGV failures
+                # as resource outcomes.
+                #
+                # Existing external ResourceGuard records above retain
+                # priority, so one STEP can never produce two resource
+                # aborts.
+                # --------------------------------------------------
+
+                legacy_cpp_rss_assert = (
+                    self.resource_guard_policy
+                    is not None
+                    and
+                    str(
+                        phase
+                    )
+                    ==
+                    "STEP"
+                    and
+                    return_code
+                    ==
+                    -int(
+                        signal.SIGABRT
+                    )
+                    and
+                    any(
+                        (
+                            "Assertion"
+                            in line
+                            and
+                            CPP_LEGACY_RSS_ASSERT_SIGNATURE
+                            in line
+                        )
+                        for line in lines
+                    )
+                )
+
+                if legacy_cpp_rss_assert:
+                    with self._resource_guard_lock:
+                        snapshot = (
+                            self.last_resource_snapshot
+                        )
+
+                    # The STEP watchdog normally already has at least
+                    # one sample. This fallback exists only for the
+                    # narrow race where the C++ assertion happens
+                    # before the first monitor sample is retained.
+                    if snapshot is None:
+                        try:
+                            snapshot = (
+                                self._resource_snapshot_reader(
+                                    cpp_pid=
+                                        self.process.pid
+                                )
+                            )
+
+                        except Exception as exc:
+                            raise RLServerResourceGuardError(
+                                "Failed to capture resource snapshot "
+                                "after known LoopyCuts C++ RSS assert"
+                            ) from exc
+
+                    raise RLServerResourceAbort(
+                        phase=
+                            "STEP",
+
+                        guard_state=
+                            CPP_LEGACY_RSS_ASSERT_GUARD_STATE,
+
+                        snapshot=
+                            snapshot,
 
                         return_code=
                             return_code,
