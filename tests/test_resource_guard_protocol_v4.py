@@ -127,7 +127,7 @@ def main():
     assert (
         FORMAL_RUNNER_VERSION
         ==
-        "loopycuts_formal_runner_v4_cpp_rss_compat"
+        "loopycuts_formal_runner_v4_cpp_rss_compat_metrics_v1"
     )
 
     assert (
@@ -139,13 +139,13 @@ def main():
     assert (
         FORMAL_RUN_ARTIFACTS_VERSION
         ==
-        "loopycuts_formal_run_artifacts_v4_cpp_rss_compat"
+        "loopycuts_formal_run_artifacts_v4_cpp_rss_compat_metrics_v1"
     )
 
     assert (
         FORMAL_RUN_MANIFEST_SCHEMA
         ==
-        "loopycuts_formal_run_manifest_v4_cpp_rss_compat"
+        "loopycuts_formal_run_manifest_v4_cpp_rss_compat_metrics_v1"
     )
 
     assert (

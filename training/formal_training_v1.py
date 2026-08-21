@@ -90,6 +90,10 @@ from training.masked_auto_alpha_v1 import (
     MaskedAutoAlphaV1,
 )
 
+from training.training_metrics_v1 import (
+    TrainingMetricsWriterV1,
+)
+
 from training.protocol_v1 import (
     PROJECT_STAGE2_RESOURCE_GUARD_SAMPLE_INTERVAL_SECONDS,
     PROJECT_STAGE2_RESOURCE_GUARD_WARNING_SWAP_GIB,
@@ -879,6 +883,11 @@ def training_stats_snapshot(
 
 def run_formal_stage1(
     core: FormalTrainingCoreV1,
+    *,
+    metrics_writer:
+        TrainingMetricsWriterV1
+        | None
+        = None,
 ):
     if (
         core.stage
@@ -947,6 +956,24 @@ def run_formal_stage1(
                 *
                 PAPER_BATCH_SIZE
             )
+
+            if metrics_writer is not None:
+                metrics_writer.append(
+                    seed=
+                        core.seed,
+
+                    stage=
+                        "STAGE_I",
+
+                    gradient_update=
+                        update_index,
+
+                    sampled_demo_transitions=
+                        core.stage1_sampled_demo_transitions,
+
+                    stats=
+                        snapshot,
+                )
 
             if (
                 update_index
@@ -2037,6 +2064,15 @@ def _single_bool(
 def flush_formal_stage2_updates(
     core: FormalTrainingCoreV1,
     state: FormalStage2StateV1,
+    *,
+    metrics_writer:
+        TrainingMetricsWriterV1
+        | None
+        = None,
+    episode_index:
+        int
+        | None
+        = None,
 ):
     if (
         core.stage
@@ -2090,8 +2126,9 @@ def flush_formal_stage2_updates(
     with policy_within_training_step(
         core.policy
     ):
-        for _ in range(
-            pending_updates
+        for episode_update_index in range(
+            1,
+            pending_updates + 1,
         ):
             stats, mix = (
                 core.algorithm.update_equal_replay(
@@ -2161,6 +2198,36 @@ def flush_formal_stage2_updates(
 
             state.total_gradient_updates += 1
 
+            if metrics_writer is not None:
+                metrics_writer.append(
+                    seed=
+                        core.seed,
+
+                    stage=
+                        "STAGE_II",
+
+                    gradient_update=
+                        state.total_gradient_updates,
+
+                    environment_steps=
+                        state.total_environment_steps,
+
+                    episode_index=(
+                        int(episode_index)
+                        if episode_index is not None
+                        else None
+                    ),
+
+                    episode_update_index=
+                        episode_update_index,
+
+                    episode_update_count=
+                        pending_updates,
+
+                    stats=
+                        snapshot,
+                )
+
             final_snapshot = snapshot
 
     if (
@@ -2188,6 +2255,11 @@ def collect_formal_stage2_model_episode(
     model: FormalStage2ModelV1,
     executable: Path =
         DEFAULT_EXECUTABLE,
+
+    metrics_writer:
+        TrainingMetricsWriterV1
+        | None
+        = None,
 
     resource_guard_policy=None,
 
@@ -2771,6 +2843,12 @@ def collect_formal_stage2_model_episode(
         flush_formal_stage2_updates(
             core,
             state,
+
+            metrics_writer=
+                metrics_writer,
+
+            episode_index=
+                episode_index,
         )
     )
 
@@ -2946,6 +3024,11 @@ def run_next_formal_stage2_episode(
     *,
     executable: Path =
         DEFAULT_EXECUTABLE,
+
+    metrics_writer:
+        TrainingMetricsWriterV1
+        | None
+        = None,
 ):
     model = (
         sample_formal_stage2_model(
@@ -2963,6 +3046,9 @@ def run_next_formal_stage2_episode(
 
             executable=
                 executable,
+
+            metrics_writer=
+                metrics_writer,
         )
     )
 
@@ -2973,6 +3059,11 @@ def run_formal_stage2_to_budget(
     *,
     executable: Path =
         DEFAULT_EXECUTABLE,
+
+    metrics_writer:
+        TrainingMetricsWriterV1
+        | None
+        = None,
 ):
     while (
         state.total_environment_steps
@@ -2986,6 +3077,9 @@ def run_formal_stage2_to_budget(
 
                 executable=
                     executable,
+
+                metrics_writer=
+                    metrics_writer,
             )
         )
 

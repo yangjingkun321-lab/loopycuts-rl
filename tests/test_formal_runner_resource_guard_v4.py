@@ -65,8 +65,13 @@ from training.run_formal_training_v1 import (
     FormalRunnerError,
 
     _run_stage2_loop,
+    formal_training_metrics_path,
     latest_checkpoint_path,
     wait_for_formal_resource_rearm,
+)
+
+from training.training_metrics_v1 import (
+    TrainingMetricsWriterV1,
 )
 
 
@@ -259,7 +264,7 @@ def main():
     assert (
         FORMAL_RUNNER_VERSION
         ==
-        "loopycuts_formal_runner_v4_cpp_rss_compat"
+        "loopycuts_formal_runner_v4_cpp_rss_compat_metrics_v1"
     )
 
 
@@ -425,6 +430,37 @@ def main():
                 False,
         )
 
+        metrics_writer = (
+            TrainingMetricsWriterV1(
+                path=
+                    formal_training_metrics_path(
+                        run_directory
+                    )
+            )
+        )
+
+        # Lightweight synthetic Stage-I telemetry:
+        # this test validates runner/ResourceAbort orchestration,
+        # not Stage-I neural training itself.
+        for update_index in range(
+            1,
+            PROJECT_STAGE1_GRADIENT_STEPS + 1,
+        ):
+            metrics_writer.append(
+                seed=42,
+
+                stage=
+                    "STAGE_I",
+
+                gradient_update=
+                    update_index,
+
+                stats={
+                    "actor_loss":
+                        0.0,
+                },
+            )
+
         record_stage1_complete(
             run_directory=
                 run_directory,
@@ -492,6 +528,9 @@ def main():
                     model=
                         plate3,
 
+                    metrics_writer=
+                        metrics_writer,
+
                     resource_guard_policy=
                         ResourceGuardPolicyV1(),
 
@@ -554,6 +593,9 @@ def main():
                 require_clean_git=
                     False,
 
+                metrics_writer=
+                    metrics_writer,
+
                 # Far above env=1:
                 # the checkpoint must therefore come ONLY from
                 # RESOURCE_ABORT, not periodic cadence.
@@ -598,6 +640,15 @@ def main():
 
         assert (
             state.total_gradient_updates
+            ==
+            1
+        )
+
+        assert (
+            metrics_writer.stage_record_count(
+                seed=42,
+                stage="STAGE_II",
+            )
             ==
             1
         )

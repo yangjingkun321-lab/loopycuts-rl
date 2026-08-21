@@ -49,6 +49,11 @@ from training.formal_training_v1 import (
     run_next_formal_stage2_episode,
 )
 
+from training.training_metrics_v1 import (
+    TRAINING_METRICS_FILENAME,
+    TrainingMetricsWriterV1,
+)
+
 from training.protocol_v1 import (
     PROJECT_STAGE2_RESOURCE_GUARD_WARNING_SWAP_GIB,
     PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SWAP_GIB,
@@ -67,7 +72,7 @@ from training.protocol_v1 import (
 
 
 FORMAL_RUNNER_VERSION = (
-    "loopycuts_formal_runner_v4_cpp_rss_compat"
+    "loopycuts_formal_runner_v4_cpp_rss_compat_metrics_v1"
 )
 
 
@@ -131,6 +136,110 @@ class FormalRunnerError(
     RuntimeError
 ):
     pass
+
+
+def formal_training_metrics_path(
+    run_directory: Path,
+):
+    return (
+        Path(
+            run_directory
+        )
+        .resolve()
+        /
+        TRAINING_METRICS_FILENAME
+    )
+
+
+def validate_training_metrics_checkpoint_prefix(
+    *,
+    metrics_writer: TrainingMetricsWriterV1,
+    core: FormalTrainingCoreV1,
+    stage2_state: FormalStage2StateV1 | None,
+):
+    stage1_result = (
+        metrics_writer.assert_complete_prefix(
+            seed=
+                core.seed,
+
+            stage=
+                "STAGE_I",
+
+            gradient_updates=
+                core.stage1_updates_completed,
+        )
+    )
+
+    stage2_result = None
+
+    if stage2_state is not None:
+        stage2_result = (
+            metrics_writer.assert_complete_prefix(
+                seed=
+                    core.seed,
+
+                stage=
+                    "STAGE_II",
+
+                gradient_updates=
+                    stage2_state.total_gradient_updates,
+            )
+        )
+
+    return {
+        "stage1":
+            stage1_result,
+
+        "stage2":
+            stage2_result,
+    }
+
+
+def validate_complete_formal_training_metrics(
+    *,
+    metrics_writer: TrainingMetricsWriterV1,
+    core: FormalTrainingCoreV1,
+):
+    stage1_result = (
+        metrics_writer.assert_exact_stage(
+            seed=
+                core.seed,
+
+            stage=
+                "STAGE_I",
+
+            gradient_updates=
+                PROJECT_STAGE1_GRADIENT_STEPS,
+        )
+    )
+
+    stage2_result = (
+        metrics_writer.assert_exact_stage(
+            seed=
+                core.seed,
+
+            stage=
+                "STAGE_II",
+
+            gradient_updates=
+                PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS,
+        )
+    )
+
+    return {
+        "stage1":
+            stage1_result,
+
+        "stage2":
+            stage2_result,
+
+        "total_records":
+            (
+                PROJECT_STAGE1_GRADIENT_STEPS
+                +
+                PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS
+            ),
+    }
 
 
 def formal_run_directory(
@@ -262,7 +371,26 @@ def save_and_record_formal_checkpoint(
     core: FormalTrainingCoreV1,
     stage2_state: FormalStage2StateV1 | None,
     require_clean_git: bool,
+
+    metrics_writer:
+        TrainingMetricsWriterV1
+        | None
+        = None,
 ):
+    if metrics_writer is not None:
+        validate_training_metrics_checkpoint_prefix(
+            metrics_writer=
+                metrics_writer,
+
+            core=
+                core,
+
+            stage2_state=
+                stage2_state,
+        )
+
+        metrics_writer.sync()
+
     result = save_formal_checkpoint(
         checkpoint_path=
             checkpoint_path,
@@ -820,6 +948,11 @@ def _run_stage2_loop(
 
     require_clean_git: bool,
 
+    metrics_writer:
+        TrainingMetricsWriterV1
+        | None
+        = None,
+
     checkpoint_interval_environment_steps: int =
         FORMAL_CHECKPOINT_INTERVAL_ENV_STEPS,
 
@@ -858,6 +991,9 @@ def _run_stage2_loop(
             return run_next_formal_stage2_episode(
                 runner_core,
                 runner_state,
+
+                metrics_writer=
+                    metrics_writer,
             )
 
         episode_runner = (
@@ -1041,6 +1177,9 @@ def _run_stage2_loop(
 
                     require_clean_git=
                         require_clean_git,
+
+                    metrics_writer=
+                        metrics_writer,
                 )
             )
 
@@ -1160,6 +1299,11 @@ def finalize_completed_formal_run(
     last_checkpoint_environment_steps: int,
     latest_checkpoint_result,
     require_clean_git: bool,
+
+    metrics_writer:
+        TrainingMetricsWriterV1
+        | None
+        = None,
 ):
     if (
         stage2_state.total_environment_steps
@@ -1190,6 +1334,15 @@ def finalize_completed_formal_run(
             "Cannot finalize with incorrect D_expo size"
         )
 
+    if metrics_writer is not None:
+        validate_complete_formal_training_metrics(
+            metrics_writer=
+                metrics_writer,
+
+            core=
+                core,
+        )
+
     if (
         latest_checkpoint_result is None
         or
@@ -1215,6 +1368,9 @@ def finalize_completed_formal_run(
 
                 require_clean_git=
                     require_clean_git,
+
+                metrics_writer=
+                    metrics_writer,
             )
         )
 
@@ -1241,6 +1397,11 @@ def _resume_existing_checkpoint(
     run_directory: Path,
     checkpoint_path: Path,
     require_clean_git: bool,
+
+    metrics_writer:
+        TrainingMetricsWriterV1
+        | None
+        = None,
 ):
     (
         core,
@@ -1288,6 +1449,18 @@ def _resume_existing_checkpoint(
         stage2_state=
             stage2_state,
     )
+
+    if metrics_writer is not None:
+        validate_training_metrics_checkpoint_prefix(
+            metrics_writer=
+                metrics_writer,
+
+            core=
+                core,
+
+            stage2_state=
+                stage2_state,
+        )
 
     checkpoint_result = (
         checkpoint_result_from_existing(
@@ -1383,13 +1556,25 @@ def run_new_formal_training(
             require_clean_git,
     )
 
+    metrics_writer = (
+        TrainingMetricsWriterV1(
+            path=
+                formal_training_metrics_path(
+                    run_directory
+                )
+        )
+    )
+
     print(
         f"formal-runner seed={seed} Stage-I starting"
     )
 
     stage1_result = (
         run_formal_stage1(
-            core
+            core,
+
+            metrics_writer=
+                metrics_writer,
         )
     )
 
@@ -1420,6 +1605,9 @@ def run_new_formal_training(
 
             require_clean_git=
                 require_clean_git,
+
+            metrics_writer=
+                metrics_writer,
         )
     )
 
@@ -1451,6 +1639,9 @@ def run_new_formal_training(
 
         require_clean_git=
             require_clean_git,
+
+        metrics_writer=
+            metrics_writer,
     )
 
     final_checkpoint = (
@@ -1479,6 +1670,9 @@ def run_new_formal_training(
 
             require_clean_git=
                 require_clean_git,
+
+            metrics_writer=
+                metrics_writer,
         )
     )
 
@@ -1551,6 +1745,24 @@ def resume_formal_training(
             run_directory
         )
 
+    metrics_path = (
+        formal_training_metrics_path(
+            run_directory
+        )
+    )
+
+    if not metrics_path.is_file():
+        raise FileNotFoundError(
+            metrics_path
+        )
+
+    metrics_writer = (
+        TrainingMetricsWriterV1(
+            path=
+                metrics_path
+        )
+    )
+
 
     # ------------------------------------------------------------------
     # Normal resume path: an atomic checkpoint exists.
@@ -1574,6 +1786,9 @@ def resume_formal_training(
 
             require_clean_git=
                 require_clean_git,
+
+            metrics_writer=
+                metrics_writer,
         )
 
         if (
@@ -1678,7 +1893,10 @@ def resume_formal_training(
 
         stage1_result = (
             run_formal_stage1(
-                core
+                core,
+
+                metrics_writer=
+                    metrics_writer,
             )
         )
 
@@ -1718,6 +1936,9 @@ def resume_formal_training(
 
                 require_clean_git=
                     require_clean_git,
+
+                metrics_writer=
+                    metrics_writer,
             )
         )
 
@@ -1744,6 +1965,14 @@ def resume_formal_training(
         ==
         PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS
     ):
+        validate_complete_formal_training_metrics(
+            metrics_writer=
+                metrics_writer,
+
+            core=
+                core,
+        )
+
         final_checkpoint = (
             checkpoint_result_from_existing(
                 checkpoint_path=
@@ -1824,6 +2053,9 @@ def resume_formal_training(
 
         require_clean_git=
             require_clean_git,
+
+        metrics_writer=
+            metrics_writer,
     )
 
     final_checkpoint = (
@@ -1852,6 +2084,9 @@ def resume_formal_training(
 
             require_clean_git=
                 require_clean_git,
+
+            metrics_writer=
+                metrics_writer,
         )
     )
 

@@ -462,7 +462,7 @@ def main():
     assert (
         FORMAL_RUNNER_VERSION
         ==
-        "loopycuts_formal_runner_v4_cpp_rss_compat"
+        "loopycuts_formal_runner_v4_cpp_rss_compat_metrics_v1"
     )
 
     assert (

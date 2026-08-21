@@ -43,6 +43,11 @@ from training.formal_training_v1 import (
     prepare_formal_training_core,
 )
 
+from training.training_metrics_v1 import (
+    TRAINING_METRICS_FILENAME,
+    TRAINING_METRICS_VERSION,
+)
+
 
 def make_episode(
     episode_index: int,
@@ -163,7 +168,7 @@ def main():
         assert (
             FORMAL_RUN_ARTIFACTS_VERSION
             ==
-            "loopycuts_formal_run_artifacts_v4_cpp_rss_compat"
+            "loopycuts_formal_run_artifacts_v4_cpp_rss_compat_metrics_v1"
         )
 
         manifest = (
@@ -185,6 +190,70 @@ def main():
             ]
             ==
             42
+        )
+
+        assert (
+            manifest[
+                "software_contract"
+            ][
+                "training_metrics_version"
+            ]
+            ==
+            TRAINING_METRICS_VERSION
+        )
+
+        metrics_contract = (
+            manifest[
+                "formal_training"
+            ][
+                "training_metrics"
+            ]
+        )
+
+        assert (
+            metrics_contract[
+                "version"
+            ]
+            ==
+            TRAINING_METRICS_VERSION
+        )
+
+        assert (
+            metrics_contract[
+                "filename"
+            ]
+            ==
+            TRAINING_METRICS_FILENAME
+        )
+
+        assert (
+            metrics_contract[
+                "stage1_expected_rows"
+            ]
+            ==
+            782
+        )
+
+        assert (
+            metrics_contract[
+                "stage2_expected_rows"
+            ]
+            ==
+            25_000
+        )
+
+        metrics_path = (
+            run_directory
+            /
+            TRAINING_METRICS_FILENAME
+        )
+
+        assert metrics_path.is_file()
+
+        assert (
+            metrics_path.read_bytes()
+            ==
+            b""
         )
 
         assert (

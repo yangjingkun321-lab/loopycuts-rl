@@ -33,6 +33,11 @@ from training.formal_training_v1 import (
     FormalTrainingCoreV1,
 )
 
+from training.training_metrics_v1 import (
+    TRAINING_METRICS_FILENAME,
+    TRAINING_METRICS_VERSION,
+)
+
 from training.protocol_v1 import (
     PROJECT_REWARD_VERSION,
     PROJECT_RUNTIME_REWARD_VERSION,
@@ -94,11 +99,11 @@ from training.protocol_v1 import (
 
 
 FORMAL_RUN_ARTIFACTS_VERSION = (
-    "loopycuts_formal_run_artifacts_v4_cpp_rss_compat"
+    "loopycuts_formal_run_artifacts_v4_cpp_rss_compat_metrics_v1"
 )
 
 FORMAL_RUN_MANIFEST_SCHEMA = (
-    "loopycuts_formal_run_manifest_v4_cpp_rss_compat"
+    "loopycuts_formal_run_manifest_v4_cpp_rss_compat_metrics_v1"
 )
 
 FORMAL_RUN_EVENT_SCHEMA = (
@@ -118,6 +123,38 @@ class FormalRunArtifactError(
     RuntimeError
 ):
     pass
+
+
+def formal_training_metrics_manifest_contract():
+    return {
+        "version":
+            TRAINING_METRICS_VERSION,
+
+        "filename":
+            TRAINING_METRICS_FILENAME,
+
+        "record_key": [
+            "seed",
+            "stage",
+            "gradient_update",
+        ],
+
+        "one_record_per_gradient_update":
+            True,
+
+        "stage1_expected_rows":
+            int(
+                PROJECT_STAGE1_GRADIENT_STEPS
+            ),
+
+        "stage2_expected_rows":
+            int(
+                PROJECT_STAGE2_TOTAL_ENVIRONMENT_STEPS
+            ),
+
+        "checkpoint_durability":
+            "FSYNC_BEFORE_FORMAL_CHECKPOINT",
+    }
 
 
 def formal_resource_guard_manifest_contract():
@@ -507,6 +544,9 @@ def build_formal_run_manifest(
 
             "checkpoint_version":
                 FORMAL_CHECKPOINT_VERSION,
+
+            "training_metrics_version":
+                TRAINING_METRICS_VERSION,
         },
 
         "input_provenance": {
@@ -636,6 +676,9 @@ def build_formal_run_manifest(
 
             "stage2_resource_guard":
                 formal_resource_guard_manifest_contract(),
+
+            "training_metrics":
+                formal_training_metrics_manifest_contract(),
         },
     }
 
@@ -662,6 +705,12 @@ def create_formal_run_artifacts(
         EVENT_LOG_FILENAME
     )
 
+    training_metrics_path = (
+        run_directory
+        /
+        TRAINING_METRICS_FILENAME
+    )
+
     if (
         require_clean_git
         and
@@ -675,6 +724,8 @@ def create_formal_run_artifacts(
         manifest_path.exists()
         or
         event_log_path.exists()
+        or
+        training_metrics_path.exists()
     ):
         raise FormalRunArtifactError(
             "Refusing to overwrite an existing formal run artifact set"
@@ -708,6 +759,15 @@ def create_formal_run_artifacts(
             f.fileno()
         )
 
+    with training_metrics_path.open(
+        "xb"
+    ) as f:
+        f.flush()
+
+        os.fsync(
+            f.fileno()
+        )
+
     _fsync_directory(
         run_directory
     )
@@ -731,6 +791,11 @@ def create_formal_run_artifacts(
         "event_log_path":
             str(
                 event_log_path
+            ),
+
+        "training_metrics_path":
+            str(
+                training_metrics_path
             ),
     }
 
@@ -796,6 +861,9 @@ def load_and_validate_run_manifest(
 
         "checkpoint_version":
             FORMAL_CHECKPOINT_VERSION,
+
+        "training_metrics_version":
+            TRAINING_METRICS_VERSION,
     }
 
     if (
@@ -807,6 +875,26 @@ def load_and_validate_run_manifest(
     ):
         raise FormalRunArtifactError(
             "Formal run software contract mismatch"
+        )
+
+    observed_training_metrics = (
+        manifest
+        .get(
+            "formal_training",
+            {},
+        )
+        .get(
+            "training_metrics"
+        )
+    )
+
+    if (
+        observed_training_metrics
+        !=
+        formal_training_metrics_manifest_contract()
+    ):
+        raise FormalRunArtifactError(
+            "Formal run Training Metrics contract mismatch"
         )
 
     observed_resource_guard = (
