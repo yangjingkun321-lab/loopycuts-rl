@@ -1,0 +1,68 @@
+{
+  "artifact": {
+    "manifest_csv": {
+      "path": "train49_quality_refs_v1.csv",
+      "sha256": "f933efaff8785265d54cd191cba2d85bf890c735366fee10868dc9af9ffa1fbc"
+    },
+    "manifest_json": {
+      "path": "train49_quality_refs_v1.json",
+      "sha256": "5d5ade73d3a4259c13164145fbc97269de61f1a726715ac36cdede260dab4b2a"
+    },
+    "quality_ref_aggregate": {
+      "algorithm": "SORT_BY_MODEL_THEN_SHA256_OF_TAB_SEPARATED_MODEL_REF_PATH_REF_BYTES_REF_SHA256",
+      "sha256": "e0cf85f0e76d2d82631240db11b1499b0ccb99aec2cbe3e4fb3317dab975d5a1"
+    },
+    "ref_file_count": 49,
+    "refs_directory": "refs",
+    "sha256sums": {
+      "entries": 51,
+      "path": "SHA256SUMS.txt",
+      "sha256": "484d08dc5bad32dd4dab57212519696090dcf1b6ad6d973cd818d4a4b512b8a0"
+    }
+  },
+  "counts": {
+    "active_sharp": 29,
+    "explicit_zero_sharp": 20,
+    "models": 49,
+    "no_sharp_source": 0,
+    "sha256sums_entries": 51
+  },
+  "formal_training_inputs": {
+    "dataset_manifest": {
+      "path": "data/manifests/dataset_split_v2.csv",
+      "sha256": "e7bc6ba976417d427d9a105f5b90a54c304c08fdd0baff542e083c8f42ff826b"
+    },
+    "formal_training_input_provenance": {
+      "path": "data/manifests/formal_training_input_provenance_v1.json",
+      "sha256": "300538a7f1ea9b89936e4782212fd618824951f34a9b0264ab6643d40cb91f01",
+      "train49_aggregate_sha256": "a1e68312f05457e2f3ecb92e7b59fa93facbc57850833b4f8931a7143f55d42d"
+    },
+    "train49_aggregate_sha256": "a1e68312f05457e2f3ecb92e7b59fa93facbc57850833b4f8931a7143f55d42d"
+  },
+  "generator": {
+    "batch_builder": {
+      "path": "quality/build_quality_refs_train49_v1.py",
+      "sha256": "c313ae03af458230dec949985adf4960abe27ee444873869f8e743f4a847b6b4"
+    },
+    "git_commit": "8ed2ffe88ed2316629e507061a0a445c1c2f0df7",
+    "numpy_version": "1.24.4",
+    "point_triangle_backend": {
+      "path": "/home/yjk/loopycuts_test/analysis_tools/bin/point_triangle_octree_v1",
+      "sha256": "48d91a4ac45c887516ce8820cb85174d9fd460c73bc3754d196546d35fce09ee"
+    },
+    "python_version": "3.11.15",
+    "quality_ref_core_files": {
+      "quality/build_quality_ref_v1.py": "067c98dd4f4bef987e5ec427eed49a6d0bd59c5aad432ad1238ad0068d7a5c0d",
+      "quality/quality_ref_v1.py": "624f37cefb75872c4d52a12395d0cf6404483c21c60b57162326e84f6ca7594f",
+      "quality/validate_quality_ref_v1.py": "ccd28351abb495f257b4c74e265aba28b8830bee2308c4032b840065c265415d"
+    }
+  },
+  "metric_contract_sha256": "060d7f40293303aaa8fbdcbbe3999a303b14ee6b9dc0fd8bb93f21abed6d731d",
+  "schema_version": "loopycuts_train49_quality_refs_provenance_v1",
+  "status": "VALIDATED",
+  "validator": {
+    "git_commit": "779e8f5e305f4800645be0c8d2937accebe8d5ab",
+    "path": "quality/validate_quality_refs_train49_v1.py",
+    "sha256": "831dfb71763d5452b832c8c6cbc9ee98d0d26c9f6236be2d7d2c86ddee1084a8"
+  }
+}
