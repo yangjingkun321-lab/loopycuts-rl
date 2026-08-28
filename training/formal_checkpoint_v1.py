@@ -40,6 +40,10 @@ from training.formal_training_v1 import (
     prepare_formal_training_core,
 )
 
+from training.formal_training_input_provenance_v2 import (
+    FORMAL_TRAINING_INPUT_PROVENANCE_V2_VERSION,
+)
+
 from training.protocol_v1 import (
     PROJECT_STAGE2_RESOURCE_GUARD_VERSION,
     PROJECT_STAGE2_RESOURCE_GUARD_SAMPLE_INTERVAL_SECONDS,
@@ -47,9 +51,9 @@ from training.protocol_v1 import (
     PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SWAP_GIB,
     PROJECT_STAGE2_RESOURCE_GUARD_ABORT_HOLD_SECONDS,
     PROJECT_STAGE2_RESOURCE_GUARD_EMERGENCY_SWAP_GIB,
-    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_SWAP_ABORT_GIB,
     PROJECT_STAGE2_RESOURCE_GUARD_INITIALIZE_ENABLED,
-    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_ADDS_TRANSITION,
+    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_ADDS_TRANSITION,
     PROJECT_STAGE2_RESOURCE_GUARD_REARM_SWAP_GIB,
     PROJECT_STAGE2_RESOURCE_GUARD_REARM_TIMEOUT_SECONDS,
     PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SCOPE,
@@ -80,7 +84,7 @@ from training.protocol_v1 import (
 
 
 FORMAL_CHECKPOINT_VERSION = (
-    "loopycuts_formal_checkpoint_v4_cpp_rss_compat"
+    "loopycuts_formal_checkpoint_v5_quality_aware"
 )
 
 
@@ -127,9 +131,9 @@ def formal_resource_guard_contract():
                 PROJECT_STAGE2_RESOURCE_GUARD_EMERGENCY_SWAP_GIB
             ),
 
-        "finalize_eval_swap_abort_gib":
+        "finalize_quality_swap_abort_gib":
             int(
-                PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB
+                PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_SWAP_ABORT_GIB
             ),
 
         "initialize_guard_enabled":
@@ -137,9 +141,9 @@ def formal_resource_guard_contract():
                 PROJECT_STAGE2_RESOURCE_GUARD_INITIALIZE_ENABLED
             ),
 
-        "finalize_eval_adds_transition":
+        "finalize_quality_adds_transition":
             bool(
-                PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_ADDS_TRANSITION
+                PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_ADDS_TRANSITION
             ),
 
         "rearm_swap_gib":
@@ -957,22 +961,10 @@ def build_formal_checkpoint_payload(
                 tianshou.__version__,
         },
 
-        "input_provenance": {
-            "manifest_sha256":
-                core.input_provenance[
-                    "manifest_sha256"
-                ],
-
-            "train49_aggregate_sha256":
-                core.input_provenance[
-                    "train49_aggregate_sha256"
-                ],
-
-            "selected_bc_weight":
-                core.input_provenance[
-                    "selected_bc_weight"
-                ],
-        },
+        "input_provenance":
+            copy.deepcopy(
+                core.input_provenance
+            ),
 
         "core": {
             "seed":
@@ -1393,34 +1385,45 @@ def load_formal_checkpoint(
     # Strict frozen-input identity.
     # ------------------------------------------------------------------
 
-    expected_provenance = payload[
-        "input_provenance"
-    ]
+    expected_provenance = copy.deepcopy(
+        payload[
+            "input_provenance"
+        ]
+    )
+
+    observed_provenance = copy.deepcopy(
+        core.input_provenance
+    )
 
     if (
-        core.input_provenance[
-            "manifest_sha256"
-        ]
+        expected_provenance.get(
+            "schema_version"
+        )
         !=
-        expected_provenance[
-            "manifest_sha256"
-        ]
+        FORMAL_TRAINING_INPUT_PROVENANCE_V2_VERSION
     ):
         raise FormalCheckpointError(
-            "Checkpoint formal-input provenance SHA256 mismatch"
+            "Checkpoint formal-input provenance schema mismatch"
         )
 
     if (
-        core.input_provenance[
-            "train49_aggregate_sha256"
-        ]
+        observed_provenance.get(
+            "schema_version"
+        )
         !=
-        expected_provenance[
-            "train49_aggregate_sha256"
-        ]
+        FORMAL_TRAINING_INPUT_PROVENANCE_V2_VERSION
     ):
         raise FormalCheckpointError(
-            "Checkpoint Train49 provenance mismatch"
+            "Runtime formal-input provenance schema mismatch"
+        )
+
+    if (
+        expected_provenance
+        !=
+        observed_provenance
+    ):
+        raise FormalCheckpointError(
+            "Checkpoint Formal V5 input-provenance mismatch"
         )
 
     if (

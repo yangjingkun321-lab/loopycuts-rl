@@ -42,7 +42,7 @@ from training.formal_training_v1 import (
 from training.protocol_v1 import (
     PROJECT_STAGE1_ACTUAL_SAMPLED_DEMO_TRANSITIONS,
     PROJECT_STAGE1_GRADIENT_STEPS,
-    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_SWAP_ABORT_GIB,
 )
 
 
@@ -104,7 +104,7 @@ def finalize_cap_snapshot_reader(
 
 def main():
     assert (
-        PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB
+        PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_SWAP_ABORT_GIB
         ==
         25
     )
@@ -138,7 +138,7 @@ def main():
     assert (
         FORMAL_STAGE2_ONLINE_VERSION
         ==
-        "loopycuts_formal_stage2_online_v4_cpp_rss_compat"
+        "loopycuts_formal_stage2_online_v5_quality_aware"
     )
 
     plate3 = next(
@@ -159,7 +159,7 @@ def main():
     #     25 < 30 / 31 / 32 GiB
     #     -> no STEP ResourceGuard abort
     #
-    # FINALIZE_EVAL:
+    # FINALIZE_QUALITY:
     #     25 >= dedicated 25-GiB cap
     #     -> RESOURCE_ABORT
     # ------------------------------------------------------------
@@ -227,7 +227,7 @@ def main():
     print()
     print("=" * 100)
     print(
-        "FORMAL STAGE-II FINALIZE_EVAL RESOURCE_ABORT"
+        "FORMAL STAGE-II FINALIZE_QUALITY RESOURCE_ABORT"
     )
     print("=" * 100)
 
@@ -322,7 +322,7 @@ def main():
     assert (
         record["resource_guard_phase"]
         ==
-        "FINALIZE_EVAL"
+        "FINALIZE_QUALITY"
     )
 
     assert (
@@ -341,13 +341,111 @@ def main():
 
 
     # ============================================================
+    # Reward V5 episode-level telemetry.
+    #
+    # The final real STEP completed, but FINALIZE_QUALITY was
+    # resource-aborted. Its STEP metrics remain audit evidence while
+    # Reward V5 itself is the exact -4 RESOURCE_ABORT override.
+    # ============================================================
+
+    terminal_quality = (
+        record[
+            "terminal_quality"
+        ]
+    )
+
+    terminal_reward_v5 = (
+        record[
+            "terminal_reward_v5"
+        ]
+    )
+
+    assert (
+        terminal_quality[
+            "available"
+        ]
+        is False
+    )
+
+    assert (
+        terminal_reward_v5[
+            "available"
+        ]
+        is True
+    )
+
+    assert (
+        terminal_reward_v5[
+            "quality_available"
+        ]
+        is False
+    )
+
+    assert (
+        terminal_reward_v5[
+            "step"
+        ]
+        ==
+        0.0
+    )
+
+    assert (
+        terminal_reward_v5[
+            "tet_growth"
+        ]
+        ==
+        0.0
+    )
+
+    assert (
+        terminal_reward_v5[
+            "revert"
+        ]
+        ==
+        0.0
+    )
+
+    assert (
+        terminal_reward_v5[
+            "convergence"
+        ]
+        ==
+        0.0
+    )
+
+    assert (
+        terminal_reward_v5[
+            "utility"
+        ]
+        ==
+        0.0
+    )
+
+    assert (
+        terminal_reward_v5[
+            "terminal"
+        ]
+        ==
+        -4.0
+    )
+
+    assert (
+        terminal_reward_v5[
+            "total"
+        ]
+        ==
+        -4.0
+    )
+
+
+    # ============================================================
     # CRITICAL:
     #
     # N real actions == N replay transitions
     #                == N environment steps
     #                == N SAC updates
     #
-    # FINALIZE_EVAL does NOT create transition N+1.
+    # FINALIZE_QUALITY does NOT create transition N+1.
     # ============================================================
 
     assert (
@@ -405,7 +503,7 @@ def main():
 
     # ============================================================
     # Second transition is the genuine terminal STEP whose
-    # FINALIZE_EVAL outcome was replaced by RESOURCE_ABORT.
+    # FINALIZE_QUALITY outcome was replaced by RESOURCE_ABORT.
     # ============================================================
 
     last = (
@@ -449,6 +547,60 @@ def main():
     assert bool(
         last
         .info
+        .finalization_outcome
+        .attempted[0]
+    ) is True
+
+    assert bool(
+        last
+        .info
+        .terminal_quality
+        .available[0]
+    ) is False
+
+    assert bool(
+        last
+        .info
+        .reward_v5_breakdown
+        .quality_available[0]
+    ) is False
+
+    assert (
+        float(
+            last
+            .info
+            .reward_v5_breakdown
+            .utility[0]
+        )
+        ==
+        0.0
+    )
+
+    assert (
+        float(
+            last
+            .info
+            .reward_v5_breakdown
+            .terminal[0]
+        )
+        ==
+        -4.0
+    )
+
+    assert (
+        float(
+            last
+            .info
+            .reward_v5_breakdown
+            .total[0]
+        )
+        ==
+        -4.0
+    )
+
+    assert bool(
+        last
+        .info
         .resource_guard
         .triggered[0]
     ) is True
@@ -461,7 +613,7 @@ def main():
             .phase[0]
         )
         ==
-        "FINALIZE_EVAL"
+        "FINALIZE_QUALITY"
     )
 
     assert (
@@ -548,11 +700,11 @@ def main():
     )
 
     print(
-        "PASS: FINALIZE_EVAL RESOURCE_ABORT enters D_expo on the existing final STEP"
+        "PASS: FINALIZE_QUALITY RESOURCE_ABORT enters D_expo on the existing final STEP"
     )
 
     print(
-        "PASS: FINALIZE_EVAL RESOURCE_ABORT adds no third replay transition"
+        "PASS: FINALIZE_QUALITY RESOURCE_ABORT adds no third replay transition"
     )
 
     print(
@@ -564,7 +716,7 @@ def main():
     )
 
     print(
-        "PASS: ResourceGuard phase is preserved as FINALIZE_EVAL"
+        "PASS: ResourceGuard phase is preserved as FINALIZE_QUALITY"
     )
 
 

@@ -34,9 +34,9 @@ from bridge.cpp_client import (
     CPP_LEGACY_RSS_ASSERT_SIGNATURE,
 )
 
-from rewards.reward_v3 import (
-    DEFAULT_REWARD_V3_WEIGHTS,
-    REWARD_V3_VERSION,
+from rewards.reward_v5 import (
+    DEFAULT_REWARD_V5_WEIGHTS,
+    REWARD_V5_VERSION,
 )
 
 from training.formal_checkpoint_v1 import (
@@ -68,9 +68,9 @@ from training.protocol_v1 import (
     PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SWAP_GIB,
     PROJECT_STAGE2_RESOURCE_GUARD_ABORT_HOLD_SECONDS,
     PROJECT_STAGE2_RESOURCE_GUARD_EMERGENCY_SWAP_GIB,
-    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_SWAP_ABORT_GIB,
     PROJECT_STAGE2_RESOURCE_GUARD_INITIALIZE_ENABLED,
-    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_ADDS_TRANSITION,
+    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_ADDS_TRANSITION,
     PROJECT_STAGE2_RESOURCE_GUARD_REARM_SWAP_GIB,
     PROJECT_STAGE2_RESOURCE_GUARD_REARM_TIMEOUT_SECONDS,
     PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SCOPE,
@@ -101,76 +101,76 @@ def main():
     assert (
         PROTOCOL_VERSION
         ==
-        "loopycuts_training_protocol_v4_cpp_rss_compat"
+        "loopycuts_training_protocol_v5_quality_aware"
     )
 
     assert (
         PROJECT_REWARD_VERSION
         ==
-        "reward_v3"
+        "reward_v5"
     )
 
     assert (
         PROJECT_RUNTIME_REWARD_VERSION
         ==
-        REWARD_V3_VERSION
+        REWARD_V5_VERSION
         ==
-        "final_v3_resource_guard"
+        "final_v5_quality_aware_v1"
     )
 
     assert (
         FORMAL_STAGE2_ONLINE_VERSION
         ==
-        "loopycuts_formal_stage2_online_v4_cpp_rss_compat"
+        "loopycuts_formal_stage2_online_v5_quality_aware"
     )
 
     assert (
         FORMAL_RUNNER_VERSION
         ==
-        "loopycuts_formal_runner_v4_cpp_rss_compat_metrics_v1"
+        "loopycuts_formal_runner_v5_quality_aware_metrics_v1"
     )
 
     assert (
         FORMAL_CHECKPOINT_VERSION
         ==
-        "loopycuts_formal_checkpoint_v4_cpp_rss_compat"
+        "loopycuts_formal_checkpoint_v5_quality_aware"
     )
 
     assert (
         FORMAL_RUN_ARTIFACTS_VERSION
         ==
-        "loopycuts_formal_run_artifacts_v4_cpp_rss_compat_metrics_v1"
+        "loopycuts_formal_run_artifacts_v5_quality_aware_metrics_v1"
     )
 
     assert (
         FORMAL_RUN_MANIFEST_SCHEMA
         ==
-        "loopycuts_formal_run_manifest_v4_cpp_rss_compat_metrics_v1"
+        "loopycuts_formal_run_manifest_v5_quality_aware_metrics_v1"
     )
 
     assert (
         FORMAL_RUN_EVENT_SCHEMA
         ==
-        "loopycuts_formal_run_event_v4_cpp_rss_compat"
+        "loopycuts_formal_run_event_v5_quality_aware"
     )
 
     assert (
         RUN_MANIFEST_FILENAME
         ==
-        "run_manifest_v4.json"
+        "run_manifest_v5.json"
     )
 
     assert (
         EVENT_LOG_FILENAME
         ==
-        "events_v4.jsonl"
+        "events_v5.jsonl"
     )
 
     assert (
         DEFAULT_FORMAL_RUN_ROOT
         ==
         Path(
-            "/home/yjk/loopycuts_test/formal_training_v4"
+            "/home/yjk/loopycuts_test/formal_training_v5"
         )
     )
 
@@ -216,7 +216,7 @@ def main():
     )
 
     assert (
-        PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB
+        PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_SWAP_ABORT_GIB
         ==
         25
     )
@@ -227,7 +227,7 @@ def main():
     )
 
     assert (
-        PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_ADDS_TRANSITION
+        PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_ADDS_TRANSITION
         is False
     )
 
@@ -260,7 +260,7 @@ def main():
     )
 
     assert math.isclose(
-        DEFAULT_REWARD_V3_WEIGHTS.final_resource_abort,
+        DEFAULT_REWARD_V5_WEIGHTS.final_resource_abort,
         4.0,
     )
 
@@ -477,11 +477,11 @@ def main():
 
     assert (
         checkpoint_contract[
-            "finalize_eval_swap_abort_gib"
+            "finalize_quality_swap_abort_gib"
         ]
         ==
         manifest_contract[
-            "finalize_eval_swap_abort_gib"
+            "finalize_quality_swap_abort_gib"
         ]
         ==
         25
@@ -500,11 +500,11 @@ def main():
 
     assert (
         checkpoint_contract[
-            "finalize_eval_adds_transition"
+            "finalize_quality_adds_transition"
         ]
         is
         manifest_contract[
-            "finalize_eval_adds_transition"
+            "finalize_quality_adds_transition"
         ]
         is False
     )
@@ -540,12 +540,12 @@ def main():
             "runtime_reward_version"
         ]
         ==
-        "final_v3_resource_guard"
+        "final_v5_quality_aware_v1"
     )
 
 
     print(
-        "PASS: Training Protocol V4 CPP RSS compatibility identity is frozen"
+        "PASS: Training Protocol V5 quality-aware identity is frozen"
     )
 
     print(
@@ -553,7 +553,7 @@ def main():
     )
 
     print(
-        "PASS: FINALIZE_EVAL 25 GiB hard cap is frozen"
+        "PASS: FINALIZE_QUALITY 25 GiB hard cap is frozen"
     )
 
     print(
@@ -561,7 +561,7 @@ def main():
     )
 
     print(
-        "PASS: FINALIZE_EVAL RESOURCE_ABORT adds no new transition"
+        "PASS: FINALIZE_QUALITY RESOURCE_ABORT adds no new transition"
     )
 
     print(
@@ -573,11 +573,11 @@ def main():
     )
 
     print(
-        "PASS: V4 artifacts use isolated manifest/event filenames"
+        "PASS: V5 artifacts use isolated manifest/event filenames"
     )
 
     print(
-        "PASS: V4 formal runs use isolated formal_training_v4 root"
+        "PASS: V5 formal runs use isolated formal_training_v5 root"
     )
 
 

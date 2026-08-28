@@ -6,14 +6,17 @@ import numpy as np
 import torch
 
 
-PROJECT_ROOT = Path(
-    "/home/yjk/codes/loopycuts_rl"
+PROJECT_ROOT = (
+    Path(__file__)
+    .resolve()
+    .parents[1]
 )
 
-sys.path.insert(
-    0,
-    str(PROJECT_ROOT),
-)
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(
+        0,
+        str(PROJECT_ROOT),
+    )
 
 
 from tianshou.data import (

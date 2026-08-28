@@ -80,7 +80,7 @@ def main():
     assert (
         FORMAL_STAGE2_ONLINE_VERSION
         ==
-        "loopycuts_formal_stage2_online_v4_cpp_rss_compat"
+        "loopycuts_formal_stage2_online_v5_quality_aware"
     )
 
     assert (
@@ -446,6 +446,118 @@ def main():
         ]
         ==
         "FULL_HEX"
+    )
+
+
+    # ============================================================
+    # Reward V5 terminal-quality telemetry.
+    #
+    # These facts originate from the actual terminal replay
+    # transition produced by FINALIZE_QUALITY.  The formal episode
+    # record must preserve them without recomputation.
+    # ============================================================
+
+    terminal_quality = (
+        record[
+            "terminal_quality"
+        ]
+    )
+
+    terminal_reward_v5 = (
+        record[
+            "terminal_reward_v5"
+        ]
+    )
+
+    assert (
+        terminal_quality[
+            "available"
+        ]
+        is True
+    )
+
+    assert (
+        terminal_quality[
+            "model"
+        ]
+        ==
+        "Plate3"
+    )
+
+    assert (
+        terminal_quality[
+            "hex"
+        ]
+        ==
+        28
+    )
+
+    assert (
+        terminal_quality[
+            "total_polys"
+        ]
+        ==
+        28
+    )
+
+    assert (
+        terminal_quality[
+            "nonhex"
+        ]
+        ==
+        0
+    )
+
+    assert (
+        terminal_quality[
+            "utility"
+        ]
+        ==
+        terminal_quality[
+            "d_c"
+        ]
+        *
+        terminal_quality[
+            "q_fidelity"
+        ]
+    )
+
+    assert (
+        terminal_reward_v5[
+            "available"
+        ]
+        is True
+    )
+
+    assert (
+        terminal_reward_v5[
+            "quality_available"
+        ]
+        is True
+    )
+
+    assert (
+        terminal_reward_v5[
+            "utility"
+        ]
+        ==
+        terminal_quality[
+            "utility"
+        ]
+    )
+
+    assert (
+        terminal_reward_v5[
+            "terminal"
+        ]
+        ==
+        6.0
+        *
+        terminal_quality[
+            "utility"
+        ]
+        -
+        3.0
     )
 
     assert (

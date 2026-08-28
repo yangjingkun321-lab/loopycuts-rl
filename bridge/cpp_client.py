@@ -505,13 +505,14 @@ class LoopyCutsClient:
         *,
         stop_event,
         operation_done_event,
+        phase,
     ):
         """
-        Protect FINALIZE_EVAL with one independent system-swap
+        Protect one finalization operation with one independent system-swap
         survival fuse.
 
         This deliberately does NOT reuse the STEP ResourceGuard
-        policy. FINALIZE_EVAL may legitimately exceed the STEP
+        policy. Finalization may legitimately exceed the STEP
         10/12 GiB thresholds.
 
         The only abort condition here is:
@@ -585,7 +586,9 @@ class LoopyCutsClient:
                 record = (
                     RLServerResourceAbortRecord(
                         phase=
-                            "FINALIZE_EVAL",
+                            str(
+                                phase
+                            ),
 
                         guard_state=
                             FINALIZE_EVAL_SWAP_CAP_GUARD_STATE,
@@ -621,7 +624,7 @@ class LoopyCutsClient:
         phase,
     ):
         """
-        Read one FINALIZE_EVAL response while enforcing only the
+        Read one guarded finalization response while enforcing only the
         dedicated absolute system-swap hard cap.
         """
 
@@ -656,6 +659,9 @@ class LoopyCutsClient:
 
                 "operation_done_event":
                     operation_done_event,
+
+                "phase":
+                    phase,
             },
 
             name=(
@@ -1389,6 +1395,124 @@ class LoopyCutsClient:
 
         return (
             final_result,
+            self.state,
+        )
+
+    # ------------------------------------------------------------------
+
+    def finalize_quality(
+        self,
+        quality_ref_path,
+    ):
+        """
+        Execute V5 no-save quality-aware finalization.
+
+        C++ command:
+
+            FINALIZE_QUALITY <quality_ref_path>
+
+        The C++ server remains authoritative for all final geometry
+        and quality measurements. Python only parses the emitted
+        protocol record.
+        """
+
+        quality_ref_path = Path(
+            quality_ref_path
+        ).resolve()
+
+        if not quality_ref_path.is_file():
+            raise FileNotFoundError(
+                f"Quality reference not found: "
+                f"{quality_ref_path}"
+            )
+
+        if any(
+            ch.isspace()
+            for ch in str(
+                quality_ref_path
+            )
+        ):
+            raise ValueError(
+                "FINALIZE_QUALITY quality_ref_path "
+                "must not contain whitespace"
+            )
+
+        self._send(
+            (
+                "FINALIZE_QUALITY "
+                f"{quality_ref_path}"
+            ),
+            phase="FINALIZE_QUALITY",
+        )
+
+        #
+        # FINALIZE_QUALITY runs the same expensive final geometry
+        # pipeline as FINALIZE_EVAL. Reuse the independent
+        # finalization swap-cap monitor.
+        #
+        lines = (
+            self._read_until_with_finalize_eval_swap_guard(
+                prefix="[RL] ACTIONS",
+                phase="FINALIZE_QUALITY",
+            )
+        )
+
+        errors = (
+            self._find_server_errors(
+                lines
+            )
+        )
+
+        if errors:
+            raise RLServerProtocolError(
+                errors[-1]
+            )
+
+        final_results = []
+        quality_records = []
+
+        for line in lines:
+            if line.startswith(
+                "[RL] FINAL_RESULT"
+            ):
+                final_results.append(
+                    self._parse_key_values(
+                        line
+                    )
+                )
+
+            elif line.startswith(
+                "[RL] FINALIZE_QUALITY "
+            ):
+                quality_records.append(
+                    self._parse_key_values(
+                        line
+                    )
+                )
+
+        if len(
+            final_results
+        ) != 1:
+            raise RLServerProtocolError(
+                "FINALIZE_QUALITY must produce exactly one "
+                "[RL] FINAL_RESULT"
+            )
+
+        if len(
+            quality_records
+        ) != 1:
+            raise RLServerProtocolError(
+                "FINALIZE_QUALITY must produce exactly one "
+                "[RL] FINALIZE_QUALITY record"
+            )
+
+        self._update_from_lines(
+            lines
+        )
+
+        return (
+            final_results[0],
+            quality_records[0],
             self.state,
         )
 

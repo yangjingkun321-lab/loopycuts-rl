@@ -46,12 +46,12 @@ from bridge.resource_guard_v1 import (
     ResourceGuardPolicyV1,
 )
 
-from envs.final_reward_wrapper_v3 import (
-    FinalRewardWrapperV3,
+from envs.final_reward_wrapper_v5 import (
+    FinalRewardWrapperV5,
 )
 
-from envs.finalization_eval_wrapper import (
-    FinalizationEvalWrapper,
+from envs.finalization_quality_wrapper_v1 import (
+    FinalizationQualityWrapperV1,
 )
 
 from envs.loopycuts_env import (
@@ -62,8 +62,8 @@ from envs.formal_episode_collector_bridge_v1 import (
     FormalEpisodeCollectorBridgeV1,
 )
 
-from rewards.reward_v3 import (
-    REWARD_V3_VERSION,
+from rewards.reward_v5 import (
+    REWARD_V5_VERSION,
 )
 
 from imitation.demo_replay import (
@@ -82,8 +82,8 @@ from policies.masked_discrete_sac import (
     MaskedDiscreteSACPolicy,
 )
 
-from training.formal_training_input_provenance_v1 import (
-    assert_formal_training_input_provenance,
+from training.formal_training_input_provenance_v2 import (
+    assert_formal_training_input_provenance_v2,
 )
 
 from training.masked_auto_alpha_v1 import (
@@ -100,7 +100,7 @@ from training.protocol_v1 import (
     PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SWAP_GIB,
     PROJECT_STAGE2_RESOURCE_GUARD_ABORT_HOLD_SECONDS,
     PROJECT_STAGE2_RESOURCE_GUARD_EMERGENCY_SWAP_GIB,
-    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_SWAP_ABORT_GIB,
     PROJECT_STAGE2_RESOURCE_GUARD_REARM_SWAP_GIB,
     PAPER_BATCH_SIZE,
     PAPER_DISCOUNT_FACTOR,
@@ -182,7 +182,7 @@ FORMAL_TRAINER_CORE_VERSION = (
 
 
 DEFAULT_EXECUTABLE = Path(
-    "/home/yjk/codes/LoopyCuts/"
+    "/home/yjk/codes/LoopyCuts_v5/"
     "volumetric_cutter/"
     "volumetric_cutter"
 )
@@ -659,8 +659,8 @@ def prepare_formal_training_core(
     )
 
     input_provenance = (
-        assert_formal_training_input_provenance(
-            provenance_path=
+        assert_formal_training_input_provenance_v2(
+            historical_provenance_path=
                 input_provenance_path,
 
             executable=
@@ -672,8 +672,8 @@ def prepare_formal_training_core(
             demo_quality_manifest=
                 demo_quality_manifest,
 
-            raw_demo_root=
-                raw_demo_root,
+            quality_ref_root=
+                DEFAULT_QUALITY_REF_ROOT,
         )
     )
 
@@ -1228,7 +1228,18 @@ def enter_formal_stage2(
 # ======================================================================
 
 FORMAL_STAGE2_ONLINE_VERSION = (
-    "loopycuts_formal_stage2_online_v4_cpp_rss_compat"
+    "loopycuts_formal_stage2_online_v5_quality_aware"
+)
+
+
+DEFAULT_QUALITY_REF_ROOT = (
+    Path.home()
+    /
+    "loopycuts_test"
+    /
+    "quality_refs_train49_v1"
+    /
+    "refs"
 )
 
 
@@ -1245,6 +1256,8 @@ class FormalStage2ModelV1:
     actionable_nonconvex: int
 
     complexity_stratum: int
+
+    quality_ref_file: Path | None = None
 
 
 @dataclass
@@ -1546,6 +1559,27 @@ def load_formal_stage2_models(
     models = []
 
     for row in train_rows:
+        model_name = str(
+            row[
+                "model"
+            ]
+        )
+
+        quality_ref_file = (
+            DEFAULT_QUALITY_REF_ROOT
+            /
+            (
+                model_name
+                +
+                ".quality_ref_v1"
+            )
+        ).resolve()
+
+        if not quality_ref_file.is_file():
+            raise FileNotFoundError(
+                quality_ref_file
+            )
+
         mesh_file = Path(
             row[
                 "mesh_file"
@@ -1582,6 +1616,9 @@ def load_formal_stage2_models(
 
                 loop_file=
                     loop_file,
+
+                quality_ref_file=
+                    quality_ref_file,
 
                 header_loops=
                     int(
@@ -1874,14 +1911,14 @@ def build_formal_stage2_vector_env(
     """
     Build one formal Stage-II LoopyCuts environment.
 
-    V3 production behavior enables ResourceGuard by default:
+    Formal V5 production behavior enables ResourceGuard by default:
 
         STEP:
             warning      8 GiB SwapUsed
             hard abort  10 GiB continuously for 8 seconds
             emergency   12 GiB immediately
 
-        FINALIZE_EVAL:
+        FINALIZE_QUALITY:
             hard system-swap cap 25 GiB
 
         INITIALIZE:
@@ -1902,6 +1939,21 @@ def build_formal_stage2_vector_env(
     if not executable.is_file():
         raise FileNotFoundError(
             executable
+        )
+
+    if model.quality_ref_file is None:
+        raise FormalTrainingCoreError(
+            "Formal V5 Stage-II model lacks quality_ref_file: "
+            f"{model.model}"
+        )
+
+    quality_ref_file = Path(
+        model.quality_ref_file
+    ).resolve()
+
+    if not quality_ref_file.is_file():
+        raise FileNotFoundError(
+            quality_ref_file
         )
 
     if resource_guard_policy is None:
@@ -1934,7 +1986,7 @@ def build_formal_stage2_vector_env(
 
     if finalize_eval_swap_abort_bytes is None:
         finalize_eval_swap_abort_bytes = (
-            PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB
+            PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_SWAP_ABORT_GIB
             *
             GIB
         )
@@ -1960,8 +2012,8 @@ def build_formal_stage2_vector_env(
     def make_env():
         return (
             FormalEpisodeCollectorBridgeV1(
-                FinalRewardWrapperV3(
-                    FinalizationEvalWrapper(
+                FinalRewardWrapperV5(
+                    FinalizationQualityWrapperV1(
                         LoopyCutsEnv(
                             executable=
                                 executable,
@@ -1986,7 +2038,13 @@ def build_formal_stage2_vector_env(
 
                             finalize_eval_swap_abort_bytes=
                                 finalize_eval_swap_abort_bytes,
-                        )
+                        ),
+
+                        quality_ref_path=
+                            quality_ref_file,
+
+                        expected_model=
+                            model.model,
                     )
                 )
             )
@@ -2058,6 +2116,335 @@ def _single_bool(
         )[
             0
         ]
+    )
+
+
+def _single_str(
+    value,
+):
+    return str(
+        np.asarray(
+            value
+        )
+        .reshape(
+            -1
+        )[
+            0
+        ]
+    )
+
+
+def _empty_terminal_quality_episode_record():
+    return {
+        "available": False,
+        "model": "",
+        "hex": -1,
+        "total_polys": -1,
+        "nonhex": -1,
+        "d_c": 0.0,
+        "q_missing": 0.0,
+        "q_spurious": 0.0,
+        "q_shape": 0.0,
+        "sharp_active": 0,
+        "sharp_metrics_valid": 0,
+        "q_sharp_available": False,
+        "q_sharp": 0.0,
+        "q_fidelity": 0.0,
+        "utility": 0.0,
+    }
+
+
+def _empty_terminal_reward_v5_episode_record():
+    return {
+        "available": False,
+        "step": 0.0,
+        "tet_growth": 0.0,
+        "revert": 0.0,
+        "convergence": 0.0,
+        "quality_available": False,
+        "utility": 0.0,
+        "terminal": 0.0,
+        "total": 0.0,
+    }
+
+
+def _extract_terminal_v5_episode_telemetry(
+    *,
+    info,
+    expected_model,
+    reward,
+    finalization_outcome,
+):
+    if not hasattr(
+        info,
+        "terminal_quality",
+    ):
+        raise FormalTrainingCoreError(
+            "Terminal Stage-II transition lacks "
+            "terminal_quality telemetry"
+        )
+
+    if not hasattr(
+        info,
+        "reward_v5_breakdown",
+    ):
+        raise FormalTrainingCoreError(
+            "Terminal Stage-II transition lacks "
+            "reward_v5_breakdown telemetry"
+        )
+
+    quality = (
+        info.terminal_quality
+    )
+
+    breakdown = (
+        info.reward_v5_breakdown
+    )
+
+    terminal_quality = {
+        "available":
+            _single_bool(
+                quality.available
+            ),
+
+        "model":
+            _single_str(
+                quality.model
+            ),
+
+        "hex":
+            _single_int(
+                quality.hex
+            ),
+
+        "total_polys":
+            _single_int(
+                quality.total_polys
+            ),
+
+        "nonhex":
+            _single_int(
+                quality.nonhex
+            ),
+
+        "d_c":
+            _single_float(
+                quality.d_c
+            ),
+
+        "q_missing":
+            _single_float(
+                quality.q_missing
+            ),
+
+        "q_spurious":
+            _single_float(
+                quality.q_spurious
+            ),
+
+        "q_shape":
+            _single_float(
+                quality.q_shape
+            ),
+
+        "sharp_active":
+            _single_int(
+                quality.sharp_active
+            ),
+
+        "sharp_metrics_valid":
+            _single_int(
+                quality.sharp_metrics_valid
+            ),
+
+        "q_sharp_available":
+            _single_bool(
+                quality.q_sharp_available
+            ),
+
+        "q_sharp":
+            _single_float(
+                quality.q_sharp
+            ),
+
+        "q_fidelity":
+            _single_float(
+                quality.q_fidelity
+            ),
+
+        "utility":
+            _single_float(
+                quality.utility
+            ),
+    }
+
+    terminal_reward_v5 = {
+        "available":
+            True,
+
+        "step":
+            _single_float(
+                breakdown.step
+            ),
+
+        "tet_growth":
+            _single_float(
+                breakdown.tet_growth
+            ),
+
+        "revert":
+            _single_float(
+                breakdown.revert
+            ),
+
+        "convergence":
+            _single_float(
+                breakdown.convergence
+            ),
+
+        "quality_available":
+            _single_bool(
+                breakdown.quality_available
+            ),
+
+        "utility":
+            _single_float(
+                breakdown.utility
+            ),
+
+        "terminal":
+            _single_float(
+                breakdown.terminal
+            ),
+
+        "total":
+            _single_float(
+                breakdown.total
+            ),
+    }
+
+    # The persisted reward must be the exact reward inserted
+    # into D_expo for this terminal transition.
+    if (
+        terminal_reward_v5[
+            "total"
+        ]
+        !=
+        float(
+            reward
+        )
+    ):
+        raise FormalTrainingCoreError(
+            "Terminal Reward V5 telemetry does not "
+            "exactly match replay reward"
+        )
+
+    successful = (
+        finalization_outcome
+        in {
+            "FULL_HEX",
+            "NON_FULL_HEX",
+        }
+    )
+
+    if successful:
+        if not terminal_quality[
+            "available"
+        ]:
+            raise FormalTrainingCoreError(
+                "Successful finalization lacks "
+                "terminal quality"
+            )
+
+        if (
+            terminal_quality[
+                "model"
+            ]
+            !=
+            str(
+                expected_model
+            )
+        ):
+            raise FormalTrainingCoreError(
+                "Terminal quality model mismatch"
+            )
+
+        expected_utility = (
+            terminal_quality[
+                "d_c"
+            ]
+            *
+            terminal_quality[
+                "q_fidelity"
+            ]
+        )
+
+        if (
+            terminal_quality[
+                "utility"
+            ]
+            !=
+            expected_utility
+        ):
+            raise FormalTrainingCoreError(
+                "Terminal quality utility is not "
+                "exactly D_C * Q_fidelity"
+            )
+
+        if not terminal_reward_v5[
+            "quality_available"
+        ]:
+            raise FormalTrainingCoreError(
+                "Successful Reward V5 terminal "
+                "lacks quality"
+            )
+
+        if (
+            terminal_reward_v5[
+                "utility"
+            ]
+            !=
+            terminal_quality[
+                "utility"
+            ]
+        ):
+            raise FormalTrainingCoreError(
+                "Reward V5 utility does not exactly "
+                "match terminal quality utility"
+            )
+
+    else:
+        if (
+            finalization_outcome
+            not in {
+                "FINALIZATION_CRASH",
+                "RESOURCE_ABORT",
+            }
+        ):
+            raise FormalTrainingCoreError(
+                "Unknown terminal outcome while "
+                "extracting V5 telemetry"
+            )
+
+        if terminal_quality[
+            "available"
+        ]:
+            raise FormalTrainingCoreError(
+                "Fatal terminal outcome must not "
+                "carry terminal quality"
+            )
+
+        if terminal_reward_v5[
+            "quality_available"
+        ]:
+            raise FormalTrainingCoreError(
+                "Fatal terminal Reward V5 must not "
+                "claim quality availability"
+            )
+
+    return (
+        terminal_quality,
+        terminal_reward_v5,
     )
 
 
@@ -2397,6 +2784,14 @@ def collect_formal_stage2_model_episode(
     resource_guard_cpp_rss_bytes = 0
     resource_guard_cpp_swap_bytes = 0
 
+    terminal_quality_record = (
+        _empty_terminal_quality_episode_record()
+    )
+
+    terminal_reward_v5_record = (
+        _empty_terminal_reward_v5_episode_record()
+    )
+
     vector_env = (
         build_formal_stage2_vector_env(
             model=
@@ -2576,10 +2971,10 @@ def collect_formal_stage2_model_episode(
             if (
                 reward_version
                 !=
-                REWARD_V3_VERSION
+                REWARD_V5_VERSION
             ):
                 raise FormalTrainingCoreError(
-                    "Formal Stage-II did not collect Reward V3"
+                    "Formal Stage-II did not collect Reward V5"
                 )
 
             if not hasattr(
@@ -2634,7 +3029,7 @@ def collect_formal_stage2_model_episode(
 
                 if resource_guard_phase not in {
                     "STEP",
-                    "FINALIZE_EVAL",
+                    "FINALIZE_QUALITY",
                 }:
                     raise FormalTrainingCoreError(
                         "Unknown ResourceGuard phase: "
@@ -2799,6 +3194,25 @@ def collect_formal_stage2_model_episode(
                         "terminal outcome"
                     )
 
+                (
+                    terminal_quality_record,
+                    terminal_reward_v5_record,
+                ) = (
+                    _extract_terminal_v5_episode_telemetry(
+                        info=
+                            transition.info,
+
+                        expected_model=
+                            model.model,
+
+                        reward=
+                            reward,
+
+                        finalization_outcome=
+                            finalization_outcome,
+                    )
+                )
+
                 break
 
             if (
@@ -2941,6 +3355,12 @@ def collect_formal_stage2_model_episode(
 
         "finalization_outcome":
             finalization_outcome,
+
+        "terminal_quality":
+            terminal_quality_record,
+
+        "terminal_reward_v5":
+            terminal_reward_v5_record,
 
         "resource_abort":
             bool(

@@ -51,6 +51,11 @@ from policies.masked_discrete_sac import (
     MaskedDiscreteSACPolicy,
 )
 
+from training.protocol_v1 import (
+    PROJECT_MAIN_DEMO_EPISODES,
+    PROJECT_MAIN_DEMO_TRANSITIONS,
+)
+
 
 RAW_ROOT = Path(
     "/home/yjk/loopycuts_test/"
@@ -91,7 +96,11 @@ def main():
 
     assert len(
         demo_buffer
-    ) == 29
+    ) == PROJECT_MAIN_DEMO_TRANSITIONS
+
+    assert len(
+        records
+    ) == PROJECT_MAIN_DEMO_EPISODES
 
     # ==========================================================
     # Temporary synthetic D_expo.
@@ -104,8 +113,11 @@ def main():
     # ==========================================================
 
     expo_buffer = ReplayBuffer(
-        size=64,
-        random_seed=37,
+        size=
+            PROJECT_MAIN_DEMO_TRANSITIONS,
+
+        random_seed=
+            37,
     )
 
     expo_buffer.update(
@@ -114,7 +126,7 @@ def main():
 
     assert len(
         expo_buffer
-    ) == 29
+    ) == PROJECT_MAIN_DEMO_TRANSITIONS
 
     # The two buffers are distinct objects.
     assert (

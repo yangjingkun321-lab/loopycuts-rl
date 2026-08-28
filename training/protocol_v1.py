@@ -4,7 +4,7 @@ import math
 
 
 PROTOCOL_VERSION = (
-    "loopycuts_training_protocol_v4_cpp_rss_compat"
+    "loopycuts_training_protocol_v5_quality_aware"
 )
 
 
@@ -155,11 +155,64 @@ PROJECT_OBSERVATION_VERSION = (
 )
 
 PROJECT_REWARD_VERSION = (
-    "reward_v3"
+    "reward_v5"
 )
 
 PROJECT_RUNTIME_REWARD_VERSION = (
-    "final_v3_resource_guard"
+    "final_v5_quality_aware_v1"
+)
+
+
+PROJECT_TERMINAL_QUALITY_VERSION = (
+    "terminal_quality_facts_v1"
+)
+
+PROJECT_QUALITY_REF_SET_VERSION = (
+    "quality_refs_train49_v1"
+)
+
+PROJECT_QUALITY_REF_MODEL_COUNT = 49
+
+PROJECT_QUALITY_REF_SHA256SUMS_IDENTITY = (
+    "484d08dc5bad32dd4dab5721251969609"
+    "0dcf1b6ad6d973cd818d4a4b512b8a0"
+)
+
+PROJECT_TERMINAL_QUALITY_COMMAND = (
+    "FINALIZE_QUALITY"
+)
+
+PROJECT_TERMINAL_QUALITY_REWARD_FORMULA = (
+    "6*D_C*Q_fidelity-3"
+)
+
+
+# ------------------------------------------------------------------
+# Formal V5 input provenance.
+#
+# Historical V4/BC evidence remains immutable. V5 formal training
+# inherits those frozen artifacts by exact artifact identity rather
+# than requiring the historical live C++ worktree HEAD.
+# ------------------------------------------------------------------
+
+PROJECT_HISTORICAL_BC_INPUT_PROVENANCE_SHA256 = (
+    "b97d70f52ebbc0bf861042e6adfe29b4"
+    "305952f459a59cfffa524d154f82d01d"
+)
+
+PROJECT_HISTORICAL_FORMAL_INPUT_PROVENANCE_V1_SHA256 = (
+    "300538a7f1ea9b89936e4782212fd618"
+    "824951f34a9b0264ab6643d40cb91f01"
+)
+
+PROJECT_STAGE2_TRAIN49_INPUT_AGGREGATE_SHA256 = (
+    "a1e68312f05457e2f3ecb92e7b59fa9"
+    "3facbc57850833b4f8931a7143f55d42d"
+)
+
+PROJECT_STAGE2_V5_EXECUTABLE_SHA256 = (
+    "0adfbb90e86d1166f6b85bd5c21f1b8"
+    "bf39d1b808cf3fb80a1b4092e35bcb846"
 )
 
 PROJECT_DEMO_QUALITY_VERSION = (
@@ -870,7 +923,7 @@ PROJECT_STAGE2_RESOURCE_GUARD_CPP_RSS_ASSERT_GUARD_STATE = (
 
 # Resource sampling cadence while a guarded C++ operation is
 # blocking. This applies to STEP ResourceGuard monitoring and the
-# independent FINALIZE_EVAL 25-GiB swap-cap monitor.
+# independent FINALIZE_QUALITY 25-GiB swap-cap monitor.
 PROJECT_STAGE2_RESOURCE_GUARD_SAMPLE_INTERVAL_SECONDS = 1.0
 
 # Telemetry-only warning threshold.
@@ -889,7 +942,7 @@ PROJECT_STAGE2_RESOURCE_GUARD_ABORT_HOLD_SECONDS = 8.0
 # without waiting for the 8-second hold.
 PROJECT_STAGE2_RESOURCE_GUARD_EMERGENCY_SWAP_GIB = 12
 
-# FINALIZE_EVAL deliberately does NOT use the STEP-time
+# FINALIZE_QUALITY deliberately does NOT use the STEP-time
 # 10-GiB/8-second or 12-GiB termination thresholds.
 #
 # It has one independent machine-survival fuse:
@@ -899,7 +952,12 @@ PROJECT_STAGE2_RESOURCE_GUARD_EMERGENCY_SWAP_GIB = 12
 # At this point the terminal Stage-II STEP has already completed.
 # Therefore RESOURCE_ABORT is attached to that SAME transition and
 # no additional RL transition is created.
-PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB = 25
+PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_SWAP_ABORT_GIB = 25
+
+# Historical V4/V3 import compatibility only.
+PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB = (
+    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_SWAP_ABORT_GIB
+)
 
 # INITIALIZE is intentionally outside ResourceGuard.
 #
@@ -907,8 +965,13 @@ PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB = 25
 # preflight/re-arm condition before C++ is launched.
 PROJECT_STAGE2_RESOURCE_GUARD_INITIALIZE_ENABLED = False
 
-# FINALIZE_EVAL RESOURCE_ABORT never creates transition N+1.
-PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_ADDS_TRANSITION = False
+# FINALIZE_QUALITY RESOURCE_ABORT never creates transition N+1.
+PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_ADDS_TRANSITION = False
+
+# Historical V4/V3 import compatibility only.
+PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_ADDS_TRANSITION = (
+    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_ADDS_TRANSITION
+)
 
 # Every new formal model episode must begin with global SwapUsed
 # <=6 GiB.
@@ -929,14 +992,14 @@ PROJECT_STAGE2_RESOURCE_GUARD_TERMINAL_REWARD = -4.0
 # STEP-time RESOURCE_ABORT corresponds to one real attempted agent
 # action and therefore contributes exactly one real transition.
 #
-# FINALIZE_EVAL RESOURCE_ABORT is different: the terminal STEP
+# FINALIZE_QUALITY RESOURCE_ABORT is different: the terminal STEP
 # already exists, so its RESOURCE_ABORT outcome is attached to that
 # same transition and does not create another transition.
 PROJECT_STAGE2_RESOURCE_GUARD_ABORT_COUNTS_AS_TRANSITION = True
 
-# No dense memory shaping is used in Reward V3. Only the terminal
-# RESOURCE_ABORT penalty is added to Reward V2-compatible geometry
-# rewards.
+# No dense memory shaping is used in Reward V5. RESOURCE_ABORT
+# remains an exact fatal override and does not fabricate geometry
+# quality reward.
 PROJECT_STAGE2_RESOURCE_GUARD_DENSE_SHAPING_ENABLED = False
 
 # RESOURCE_ABORT must be durably checkpointed immediately after

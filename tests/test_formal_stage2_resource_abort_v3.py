@@ -134,7 +134,7 @@ def main():
     assert (
         FORMAL_STAGE2_ONLINE_VERSION
         ==
-        "loopycuts_formal_stage2_online_v4_cpp_rss_compat"
+        "loopycuts_formal_stage2_online_v5_quality_aware"
     )
 
     plate3 = next(
@@ -329,6 +329,104 @@ def main():
 
 
     # ============================================================
+    # Reward V5 episode-level telemetry.
+    #
+    # STEP RESOURCE_ABORT has no completed post-STEP geometry and
+    # therefore no terminal quality. Reward remains the exact -4
+    # override with every dense component zero.
+    # ============================================================
+
+    terminal_quality = (
+        record[
+            "terminal_quality"
+        ]
+    )
+
+    terminal_reward_v5 = (
+        record[
+            "terminal_reward_v5"
+        ]
+    )
+
+    assert (
+        terminal_quality[
+            "available"
+        ]
+        is False
+    )
+
+    assert (
+        terminal_reward_v5[
+            "available"
+        ]
+        is True
+    )
+
+    assert (
+        terminal_reward_v5[
+            "quality_available"
+        ]
+        is False
+    )
+
+    assert (
+        terminal_reward_v5[
+            "step"
+        ]
+        ==
+        0.0
+    )
+
+    assert (
+        terminal_reward_v5[
+            "tet_growth"
+        ]
+        ==
+        0.0
+    )
+
+    assert (
+        terminal_reward_v5[
+            "revert"
+        ]
+        ==
+        0.0
+    )
+
+    assert (
+        terminal_reward_v5[
+            "convergence"
+        ]
+        ==
+        0.0
+    )
+
+    assert (
+        terminal_reward_v5[
+            "utility"
+        ]
+        ==
+        0.0
+    )
+
+    assert (
+        terminal_reward_v5[
+            "terminal"
+        ]
+        ==
+        -4.0
+    )
+
+    assert (
+        terminal_reward_v5[
+            "total"
+        ]
+        ==
+        -4.0
+    )
+
+
+    # ============================================================
     # Critical 1 transition : 1 env step : 1 update invariant.
     # ============================================================
 
@@ -413,6 +511,77 @@ def main():
         )
         ==
         "RESOURCE_ABORT"
+    )
+
+    assert bool(
+        transition
+        .info
+        .finalization_outcome
+        .attempted[
+            0
+        ]
+    ) is False
+
+    assert bool(
+        transition
+        .info
+        .terminal_quality
+        .available[
+            0
+        ]
+    ) is False
+
+    assert bool(
+        transition
+        .info
+        .reward_v5_breakdown
+        .quality_available[
+            0
+        ]
+    ) is False
+
+    assert (
+        float(
+            transition
+            .info
+            .reward_v5_breakdown
+            .utility[
+                0
+            ]
+        )
+        ==
+        0.0
+    )
+
+    assert (
+        float(
+            transition
+            .info
+            .reward_v5_breakdown
+            .terminal[
+                0
+            ]
+        )
+        ==
+        -4.0
+    )
+
+    assert (
+        float(
+            transition
+            .info
+            .reward_v5_breakdown
+            .total[
+                0
+            ]
+        )
+        ==
+        -4.0
+    )
+
+    assert not hasattr(
+        transition.info,
+        "transition_metrics",
     )
 
     assert bool(

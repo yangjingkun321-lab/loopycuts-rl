@@ -105,6 +105,82 @@ def make_episode(
         "finalization_outcome":
             "FULL_HEX",
 
+        "terminal_quality": {
+            "available":
+                True,
+
+            "model":
+                "Plate3",
+
+            "hex":
+                28,
+
+            "total_polys":
+                28,
+
+            "nonhex":
+                0,
+
+            "d_c":
+                1.0,
+
+            "q_missing":
+                0.8,
+
+            "q_spurious":
+                0.9,
+
+            "q_shape":
+                0.8,
+
+            "sharp_active":
+                1,
+
+            "sharp_metrics_valid":
+                1,
+
+            "q_sharp_available":
+                True,
+
+            "q_sharp":
+                0.95,
+
+            "q_fidelity":
+                0.76,
+
+            "utility":
+                0.76,
+        },
+
+        "terminal_reward_v5": {
+            "available":
+                True,
+
+            "step":
+                -0.1,
+
+            "tet_growth":
+                -0.2,
+
+            "revert":
+                0.0,
+
+            "convergence":
+                0.0,
+
+            "quality_available":
+                True,
+
+            "utility":
+                0.76,
+
+            "terminal":
+                1.56,
+
+            "total":
+                1.26,
+        },
+
         "gradient_updates":
             1,
 
@@ -168,7 +244,7 @@ def main():
         assert (
             FORMAL_RUN_ARTIFACTS_VERSION
             ==
-            "loopycuts_formal_run_artifacts_v4_cpp_rss_compat_metrics_v1"
+            "loopycuts_formal_run_artifacts_v5_quality_aware_metrics_v1"
         )
 
         manifest = (
@@ -509,6 +585,36 @@ def main():
             2
         )
 
+        persisted_episode1 = (
+            events_after_replay[
+                1
+            ][
+                "payload"
+            ][
+                "record"
+            ]
+        )
+
+        assert (
+            persisted_episode1[
+                "terminal_quality"
+            ]
+            ==
+            episode1[
+                "terminal_quality"
+            ]
+        )
+
+        assert (
+            persisted_episode1[
+                "terminal_reward_v5"
+            ]
+            ==
+            episode1[
+                "terminal_reward_v5"
+            ]
+        )
+
 
         # A divergent re-execution of an already logged episode must
         # be rejected.
@@ -765,7 +871,7 @@ def main():
 
 
         print("=" * 100)
-        print("FORMAL RUN ARTIFACTS V4 CPP RSS COMPAT")
+        print("FORMAL RUN ARTIFACTS V5 QUALITY AWARE")
         print("=" * 100)
 
         print(

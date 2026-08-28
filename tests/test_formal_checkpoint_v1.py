@@ -334,7 +334,7 @@ def main():
         assert (
             FORMAL_CHECKPOINT_VERSION
             ==
-            "loopycuts_formal_checkpoint_v4_cpp_rss_compat"
+            "loopycuts_formal_checkpoint_v5_quality_aware"
         )
 
         assert checkpoint.is_file()
@@ -373,6 +373,105 @@ def main():
             copy.deepcopy(
                 stage2.history
             )
+        )
+
+        assert (
+            len(
+                history_at_checkpoint
+            )
+            ==
+            1
+        )
+
+        checkpoint_episode = (
+            history_at_checkpoint[
+                0
+            ]
+        )
+
+        terminal_quality_at_checkpoint = (
+            copy.deepcopy(
+                checkpoint_episode[
+                    "terminal_quality"
+                ]
+            )
+        )
+
+        terminal_reward_v5_at_checkpoint = (
+            copy.deepcopy(
+                checkpoint_episode[
+                    "terminal_reward_v5"
+                ]
+            )
+        )
+
+        assert (
+            terminal_quality_at_checkpoint[
+                "available"
+            ]
+            is True
+        )
+
+        assert (
+            terminal_quality_at_checkpoint[
+                "model"
+            ]
+            ==
+            "Plate3"
+        )
+
+        assert (
+            terminal_quality_at_checkpoint[
+                "hex"
+            ]
+            ==
+            28
+        )
+
+        assert (
+            terminal_quality_at_checkpoint[
+                "total_polys"
+            ]
+            ==
+            28
+        )
+
+        assert (
+            terminal_quality_at_checkpoint[
+                "utility"
+            ]
+            ==
+            terminal_quality_at_checkpoint[
+                "d_c"
+            ]
+            *
+            terminal_quality_at_checkpoint[
+                "q_fidelity"
+            ]
+        )
+
+        assert (
+            terminal_reward_v5_at_checkpoint[
+                "available"
+            ]
+            is True
+        )
+
+        assert (
+            terminal_reward_v5_at_checkpoint[
+                "quality_available"
+            ]
+            is True
+        )
+
+        assert (
+            terminal_reward_v5_at_checkpoint[
+                "utility"
+            ]
+            ==
+            terminal_quality_at_checkpoint[
+                "utility"
+            ]
         )
 
 
@@ -483,6 +582,92 @@ def main():
             ==
             history_at_checkpoint
         )
+
+        assert (
+            len(
+                restored_stage2.history
+            )
+            ==
+            1
+        )
+
+        restored_episode = (
+            restored_stage2.history[
+                0
+            ]
+        )
+
+        restored_terminal_quality = (
+            restored_episode[
+                "terminal_quality"
+            ]
+        )
+
+        restored_terminal_reward_v5 = (
+            restored_episode[
+                "terminal_reward_v5"
+            ]
+        )
+
+        assert (
+            restored_terminal_quality
+            ==
+            terminal_quality_at_checkpoint
+        )
+
+        assert (
+            restored_terminal_reward_v5
+            ==
+            terminal_reward_v5_at_checkpoint
+        )
+
+        for key in (
+            "available",
+            "model",
+            "hex",
+            "total_polys",
+            "nonhex",
+            "d_c",
+            "q_missing",
+            "q_spurious",
+            "q_shape",
+            "sharp_active",
+            "sharp_metrics_valid",
+            "q_sharp_available",
+            "q_sharp",
+            "q_fidelity",
+            "utility",
+        ):
+            assert (
+                restored_terminal_quality[
+                    key
+                ]
+                ==
+                terminal_quality_at_checkpoint[
+                    key
+                ]
+            ), key
+
+        for key in (
+            "available",
+            "step",
+            "tet_growth",
+            "revert",
+            "convergence",
+            "quality_available",
+            "utility",
+            "terminal",
+            "total",
+        ):
+            assert (
+                restored_terminal_reward_v5[
+                    key
+                ]
+                ==
+                terminal_reward_v5_at_checkpoint[
+                    key
+                ]
+            ), key
 
 
         # ============================================================
@@ -729,7 +914,7 @@ def main():
 
 
         print("=" * 100)
-        print("FORMAL CHECKPOINT V4 CPP RSS COMPAT ROUND-TRIP")
+        print("FORMAL CHECKPOINT V5 QUALITY AWARE ROUND-TRIP")
         print("=" * 100)
 
         print(
@@ -814,6 +999,10 @@ def main():
 
         print(
             "PASS: compact D_expo transitions reconstruct exact replay execution state"
+        )
+
+        print(
+            "PASS: V5 terminal quality/reward episode telemetry restores exactly"
         )
 
         print(

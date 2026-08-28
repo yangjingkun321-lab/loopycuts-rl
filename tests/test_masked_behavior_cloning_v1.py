@@ -36,6 +36,11 @@ from networks.loopycuts_actor_critic_v1 import (
     build_loopycuts_actor_critics_v1,
 )
 
+from training.protocol_v1 import (
+    PROJECT_MAIN_DEMO_EPISODES,
+    PROJECT_MAIN_DEMO_TRANSITIONS,
+)
+
 
 RAW_ROOT = Path(
     "/home/yjk/loopycuts_test/"
@@ -72,17 +77,28 @@ def main():
 
     assert len(
         buffer
-    ) == 29
+    ) == PROJECT_MAIN_DEMO_TRANSITIONS
 
     assert len(
         records
-    ) == 3
+    ) == PROJECT_MAIN_DEMO_EPISODES
+
+    # Fixed-size deterministic component-regression subset.
+    #
+    # The formal D_demo identity is checked above.  BC mathematics
+    # does not require 30 full-batch optimization passes over all
+    # 605 transitions.
+    smoke_batch_size = 64
 
     data = buffer[
         buffer.sample_indices(
-            0
+            smoke_batch_size
         )
     ]
+
+    assert len(
+        data
+    ) == smoke_batch_size
 
     actor, critic1, critic2 = (
         build_loopycuts_actor_critics_v1(
@@ -91,7 +107,8 @@ def main():
     )
 
     # ----------------------------------------------------------
-    # Initial objective on the complete formal D_demo V1.
+    # Initial objective on a deterministic subset of the current
+    # frozen formal D_demo.
     # ----------------------------------------------------------
 
     initial = (
@@ -150,7 +167,7 @@ def main():
     assert (
         initial.batch_size
         ==
-        29
+        smoke_batch_size
     )
 
     assert bool(
@@ -233,9 +250,10 @@ def main():
     # Short optimization smoke.
     #
     # This is NOT formal training.
-    # It only verifies that the production Actor can learn the
-    # 29-action demonstration objective and that the objective
-    # decreases under gradient descent.
+    # It only verifies that the production Actor can learn a
+    # deterministic subset of the current formal demonstration
+    # objective and that the objective decreases under gradient
+    # descent.
     # ----------------------------------------------------------
 
     optimizer = torch.optim.Adam(

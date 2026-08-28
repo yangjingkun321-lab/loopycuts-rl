@@ -462,7 +462,7 @@ def main():
     assert (
         FORMAL_RUNNER_VERSION
         ==
-        "loopycuts_formal_runner_v4_cpp_rss_compat_metrics_v1"
+        "loopycuts_formal_runner_v5_quality_aware_metrics_v1"
     )
 
     assert (
@@ -878,7 +878,7 @@ def main():
 
 
         print("=" * 104)
-        print("FORMAL RUNNER V4 CPP RSS COMPAT INTERRUPTION / RESUME")
+        print("FORMAL RUNNER V5 QUALITY AWARE INTERRUPTION / RESUME")
         print("=" * 104)
 
         print(

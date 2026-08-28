@@ -58,6 +58,8 @@ from training.masked_auto_alpha_v1 import (
 
 from training.protocol_v1 import (
     PAPER_ENTROPY_TARGET_COEFFICIENT,
+    PROJECT_MAIN_DEMO_EPISODES,
+    PROJECT_MAIN_DEMO_TRANSITIONS,
 )
 
 
@@ -328,7 +330,11 @@ def production_demo_integration_test():
 
     assert len(
         demo_buffer
-    ) == 29
+    ) == PROJECT_MAIN_DEMO_TRANSITIONS
+
+    assert len(
+        records
+    ) == PROJECT_MAIN_DEMO_EPISODES
 
     actor, critic1, critic2 = (
         build_loopycuts_actor_critics_v1(
@@ -358,8 +364,8 @@ def production_demo_integration_test():
 
             # Regression-only value.
             #
-            # Formal initial alpha remains unresolved in
-            # Training Protocol V1.
+            # The formal initial-alpha contract is frozen
+            # separately by the training-protocol tests.
             initial_alpha=
                 0.2,
 

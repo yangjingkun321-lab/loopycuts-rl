@@ -24,6 +24,7 @@ import training.run_formal_training_v1 as runner_module
 
 
 from training.formal_run_artifacts_v1 import (
+    EVENT_LOG_FILENAME,
     create_formal_run_artifacts,
     read_formal_events,
     record_stage1_complete,
@@ -800,7 +801,7 @@ def test_logged_ahead_metrics_replay(
             event_log_path=
                 run_directory
                 /
-                "events_v4.jsonl"
+                EVENT_LOG_FILENAME
         )
     )
 
@@ -938,7 +939,7 @@ def test_logged_ahead_metrics_replay(
             event_log_path=
                 run_directory
                 /
-                "events_v4.jsonl"
+                EVENT_LOG_FILENAME
         )
     )
 

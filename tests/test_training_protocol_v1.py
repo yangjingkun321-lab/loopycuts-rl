@@ -946,7 +946,7 @@ def main():
 
 
     print(
-        "PASS: Training Protocol V3 resource guard preserves "
+        "PASS: current training protocol preserves "
         "paper-specified facts and is fully frozen "
         "for formal training"
     )

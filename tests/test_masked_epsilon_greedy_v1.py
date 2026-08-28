@@ -45,6 +45,8 @@ from policies.masked_discrete_sac import (
 from training.protocol_v1 import (
     PAPER_TRAIN_EPSILON_GREEDY,
     PROJECT_EPSILON_RANDOM_SUPPORT,
+    PROJECT_MAIN_DEMO_EPISODES,
+    PROJECT_MAIN_DEMO_TRANSITIONS,
     PROJECT_MASKED_EPSILON_GREEDY_VERSION,
 )
 
@@ -82,6 +84,14 @@ def main():
         )
     )
 
+    assert len(
+        demo_buffer
+    ) == PROJECT_MAIN_DEMO_TRANSITIONS
+
+    assert len(
+        records
+    ) == PROJECT_MAIN_DEMO_EPISODES
+
     indices = (
         demo_buffer.sample_indices(
             0
@@ -96,7 +106,7 @@ def main():
 
     assert len(
         batch
-    ) == 29
+    ) == PROJECT_MAIN_DEMO_TRANSITIONS
 
     actor, _, _ = (
         build_loopycuts_actor_critics_v1(

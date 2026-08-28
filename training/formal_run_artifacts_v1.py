@@ -33,6 +33,10 @@ from training.formal_training_v1 import (
     FormalTrainingCoreV1,
 )
 
+from training.formal_training_input_provenance_v2 import (
+    FORMAL_TRAINING_INPUT_PROVENANCE_V2_VERSION,
+)
+
 from training.training_metrics_v1 import (
     TRAINING_METRICS_FILENAME,
     TRAINING_METRICS_VERSION,
@@ -48,9 +52,9 @@ from training.protocol_v1 import (
     PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SWAP_GIB,
     PROJECT_STAGE2_RESOURCE_GUARD_ABORT_HOLD_SECONDS,
     PROJECT_STAGE2_RESOURCE_GUARD_EMERGENCY_SWAP_GIB,
-    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB,
+    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_SWAP_ABORT_GIB,
     PROJECT_STAGE2_RESOURCE_GUARD_INITIALIZE_ENABLED,
-    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_ADDS_TRANSITION,
+    PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_ADDS_TRANSITION,
     PROJECT_STAGE2_RESOURCE_GUARD_REARM_SWAP_GIB,
     PROJECT_STAGE2_RESOURCE_GUARD_REARM_TIMEOUT_SECONDS,
     PROJECT_STAGE2_RESOURCE_GUARD_ABORT_SCOPE,
@@ -99,23 +103,23 @@ from training.protocol_v1 import (
 
 
 FORMAL_RUN_ARTIFACTS_VERSION = (
-    "loopycuts_formal_run_artifacts_v4_cpp_rss_compat_metrics_v1"
+    "loopycuts_formal_run_artifacts_v5_quality_aware_metrics_v1"
 )
 
 FORMAL_RUN_MANIFEST_SCHEMA = (
-    "loopycuts_formal_run_manifest_v4_cpp_rss_compat_metrics_v1"
+    "loopycuts_formal_run_manifest_v5_quality_aware_metrics_v1"
 )
 
 FORMAL_RUN_EVENT_SCHEMA = (
-    "loopycuts_formal_run_event_v4_cpp_rss_compat"
+    "loopycuts_formal_run_event_v5_quality_aware"
 )
 
 RUN_MANIFEST_FILENAME = (
-    "run_manifest_v4.json"
+    "run_manifest_v5.json"
 )
 
 EVENT_LOG_FILENAME = (
-    "events_v4.jsonl"
+    "events_v5.jsonl"
 )
 
 
@@ -193,9 +197,9 @@ def formal_resource_guard_manifest_contract():
                 PROJECT_STAGE2_RESOURCE_GUARD_EMERGENCY_SWAP_GIB
             ),
 
-        "finalize_eval_swap_abort_gib":
+        "finalize_quality_swap_abort_gib":
             int(
-                PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_SWAP_ABORT_GIB
+                PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_SWAP_ABORT_GIB
             ),
 
         "initialize_guard_enabled":
@@ -203,9 +207,9 @@ def formal_resource_guard_manifest_contract():
                 PROJECT_STAGE2_RESOURCE_GUARD_INITIALIZE_ENABLED
             ),
 
-        "finalize_eval_adds_transition":
+        "finalize_quality_adds_transition":
             bool(
-                PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_EVAL_ADDS_TRANSITION
+                PROJECT_STAGE2_RESOURCE_GUARD_FINALIZE_QUALITY_ADDS_TRANSITION
             ),
 
         "rearm_swap_gib":
@@ -549,37 +553,10 @@ def build_formal_run_manifest(
                 TRAINING_METRICS_VERSION,
         },
 
-        "input_provenance": {
-            "manifest_path":
-                core.input_provenance[
-                    "manifest_path"
-                ],
-
-            "manifest_sha256":
-                core.input_provenance[
-                    "manifest_sha256"
-                ],
-
-            "train49_models":
-                core.input_provenance[
-                    "train49_models"
-                ],
-
-            "train49_aggregate_sha256":
-                core.input_provenance[
-                    "train49_aggregate_sha256"
-                ],
-
-            "selected_bc_weight":
-                core.input_provenance[
-                    "selected_bc_weight"
-                ],
-
-            "bc_weight_selection_sha256":
-                core.input_provenance[
-                    "bc_weight_selection_sha256"
-                ],
-        },
+        "input_provenance":
+            copy.deepcopy(
+                core.input_provenance
+            ),
 
         "runtime":
             copy.deepcopy(
@@ -933,34 +910,45 @@ def load_and_validate_run_manifest(
             "Formal run seed mismatch"
         )
 
-    expected_input = manifest[
-        "input_provenance"
-    ]
+    expected_input = copy.deepcopy(
+        manifest[
+            "input_provenance"
+        ]
+    )
+
+    observed_input = copy.deepcopy(
+        core.input_provenance
+    )
 
     if (
-        expected_input[
-            "manifest_sha256"
-        ]
+        expected_input.get(
+            "schema_version"
+        )
         !=
-        core.input_provenance[
-            "manifest_sha256"
-        ]
+        FORMAL_TRAINING_INPUT_PROVENANCE_V2_VERSION
     ):
         raise FormalRunArtifactError(
-            "Formal run input-provenance mismatch"
+            "Formal run input-provenance schema mismatch"
         )
 
     if (
-        expected_input[
-            "train49_aggregate_sha256"
-        ]
+        observed_input.get(
+            "schema_version"
+        )
         !=
-        core.input_provenance[
-            "train49_aggregate_sha256"
-        ]
+        FORMAL_TRAINING_INPUT_PROVENANCE_V2_VERSION
     ):
         raise FormalRunArtifactError(
-            "Formal run Train49 provenance mismatch"
+            "Runtime input-provenance schema mismatch"
+        )
+
+    if (
+        expected_input
+        !=
+        observed_input
+    ):
+        raise FormalRunArtifactError(
+            "Formal run V5 input-provenance mismatch"
         )
 
     if (
@@ -977,6 +965,7 @@ def load_and_validate_run_manifest(
         raise FormalRunArtifactError(
             "Formal run lambda_BC mismatch"
         )
+
 
     if strict_git:
         if (
