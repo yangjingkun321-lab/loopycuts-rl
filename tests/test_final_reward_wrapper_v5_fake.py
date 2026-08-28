@@ -478,6 +478,192 @@ with tempfile.TemporaryDirectory() as tmp:
     )
 
 
+# ==================================================================
+# Regression: inactive SHARP across the complete wrapper composition.
+#
+# Raw C++-protocol q_sharp="NA"
+#     -> TerminalQualityFacts.q_sharp=None
+#     -> FinalizationQualityWrapperV1 info dict
+#     -> FinalRewardWrapperV5
+#
+# This is the exact transport path that formal seed42 exposed.
+# ==================================================================
+
+INACTIVE_QUALITY = dict(
+    QUALITY
+)
+
+INACTIVE_QUALITY.update(
+    {
+        "sharp_active":
+            0,
+
+        "sharp_metrics_valid":
+            0,
+
+        "q_sharp":
+            "NA",
+
+        "q_fidelity":
+            QUALITY[
+                "q_shape"
+            ],
+    }
+)
+
+QUALITY.clear()
+
+QUALITY.update(
+    INACTIVE_QUALITY
+)
+
+
+with tempfile.TemporaryDirectory() as tmp:
+    ref = (
+        Path(tmp)
+        /
+        "mechanical02.quality_ref_v1"
+    )
+
+    ref.write_text(
+        "placeholder\n",
+        encoding="utf-8",
+    )
+
+    base = FakeTerminalEnv()
+
+    env = FinalRewardWrapperV5(
+        FinalizationQualityWrapperV1(
+            base,
+
+            quality_ref_path=
+                ref,
+
+            expected_model=
+                "mechanical02",
+        )
+    )
+
+    env.reset()
+
+    (
+        observation,
+        inactive_reward,
+        terminated,
+        truncated,
+        info,
+    ) = env.step(
+        0
+    )
+
+    assert terminated is True
+    assert truncated is False
+
+    assert (
+        info[
+            "terminal_quality"
+        ][
+            "available"
+        ]
+        is True
+    )
+
+    assert (
+        info[
+            "terminal_quality"
+        ][
+            "sharp_active"
+        ]
+        ==
+        0
+    )
+
+    assert (
+        info[
+            "terminal_quality"
+        ][
+            "sharp_metrics_valid"
+        ]
+        ==
+        0
+    )
+
+    assert (
+        info[
+            "terminal_quality"
+        ][
+            "q_sharp_available"
+        ]
+        is False
+    )
+
+    assert (
+        info[
+            "terminal_quality"
+        ][
+            "q_sharp"
+        ]
+        ==
+        0.0
+    )
+
+    assert (
+        info[
+            "terminal_quality"
+        ][
+            "q_fidelity"
+        ]
+        ==
+        QUALITY[
+            "q_shape"
+        ]
+    )
+
+    inactive_utility = (
+        QUALITY[
+            "d_c"
+        ]
+        *
+        QUALITY[
+            "q_fidelity"
+        ]
+    )
+
+    inactive_terminal = (
+        6.0
+        *
+        inactive_utility
+        -
+        3.0
+    )
+
+    inactive_dense = (
+        -1.0
+        /
+        4.0
+        -
+        0.125
+    )
+
+    assert (
+        info[
+            "reward_v5_breakdown"
+        ][
+            "terminal"
+        ]
+        ==
+        inactive_terminal
+    )
+
+    assert (
+        inactive_reward
+        ==
+        inactive_dense
+        +
+        inactive_terminal
+    )
+
+
 print(
     "PASS: V5 wrapper executes FINALIZE_QUALITY exactly once"
 )

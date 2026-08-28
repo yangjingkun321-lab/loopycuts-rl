@@ -422,6 +422,37 @@ class FinalRewardWrapperV5(
             )
         )
 
+        # FinalizationQualityWrapperV1 has already parsed the raw
+        # FINALIZE_QUALITY protocol record before serializing it into
+        # info.  For inactive SHARP, the raw C++ sentinel q_sharp=NA
+        # therefore becomes TerminalQualityFacts.q_sharp=None.
+        #
+        # FinalRewardWrapperV5 deliberately reuses the strict raw
+        # protocol parser below, so restore only this transport
+        # sentinel before either downstream parse.  All semantic
+        # validation remains fail-closed in parse_terminal_quality_facts.
+        if (
+            isinstance(
+                quality_record,
+                dict,
+            )
+            and
+            "q_sharp"
+            in quality_record
+            and
+            quality_record.get(
+                "q_sharp"
+            )
+            is None
+        ):
+            quality_record = dict(
+                quality_record
+            )
+
+            quality_record[
+                "q_sharp"
+            ] = "NA"
+
         finalization_attempted = bool(
             info.get(
                 "finalization_attempted",
