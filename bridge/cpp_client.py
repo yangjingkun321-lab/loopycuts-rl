@@ -1518,6 +1518,147 @@ class LoopyCutsClient:
 
     # ------------------------------------------------------------------
 
+    def finalize_quality_export(
+        self,
+        quality_ref_path,
+        output_dir,
+    ):
+        """
+        Execute V5 quality-aware finalization while also saving the
+        intermediate/final geometry produced by the SAME finalization
+        pass.
+
+        C++ command:
+
+            FINALIZE_QUALITY_EXPORT <quality_ref_path> <output_dir>
+
+        This is evaluation/export only. C++ remains authoritative for
+        geometry, topology, final counts, and quality metrics.
+        """
+
+        quality_ref_path = Path(
+            quality_ref_path
+        ).resolve()
+
+        if not quality_ref_path.is_file():
+            raise FileNotFoundError(
+                f"Quality reference not found: "
+                f"{quality_ref_path}"
+            )
+
+        if any(
+            ch.isspace()
+            for ch in str(
+                quality_ref_path
+            )
+        ):
+            raise ValueError(
+                "FINALIZE_QUALITY_EXPORT quality_ref_path "
+                "must not contain whitespace"
+            )
+
+        output_dir = Path(
+            output_dir
+        ).resolve()
+
+        if any(
+            ch.isspace()
+            for ch in str(
+                output_dir
+            )
+        ):
+            raise ValueError(
+                "FINALIZE_QUALITY_EXPORT output_dir "
+                "must not contain whitespace"
+            )
+
+        output_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        self._send(
+            (
+                "FINALIZE_QUALITY_EXPORT "
+                f"{quality_ref_path} "
+                f"{output_dir}"
+            ),
+            phase="FINALIZE_QUALITY_EXPORT",
+        )
+
+        #
+        # This command executes the same expensive finalization
+        # pipeline as FINALIZE_QUALITY / FINALIZE_EVAL, therefore use
+        # the same independent finalization swap-cap monitor.
+        #
+        lines = (
+            self._read_until_with_finalize_eval_swap_guard(
+                prefix="[RL] ACTIONS",
+                phase="FINALIZE_QUALITY_EXPORT",
+            )
+        )
+
+        errors = (
+            self._find_server_errors(
+                lines
+            )
+        )
+
+        if errors:
+            raise RLServerProtocolError(
+                errors[-1]
+            )
+
+        final_results = []
+        quality_records = []
+
+        for line in lines:
+            if line.startswith(
+                "[RL] FINAL_RESULT"
+            ):
+                final_results.append(
+                    self._parse_key_values(
+                        line
+                    )
+                )
+
+            elif line.startswith(
+                "[RL] FINALIZE_QUALITY "
+            ):
+                quality_records.append(
+                    self._parse_key_values(
+                        line
+                    )
+                )
+
+        if len(
+            final_results
+        ) != 1:
+            raise RLServerProtocolError(
+                "FINALIZE_QUALITY_EXPORT must produce exactly one "
+                "[RL] FINAL_RESULT"
+            )
+
+        if len(
+            quality_records
+        ) != 1:
+            raise RLServerProtocolError(
+                "FINALIZE_QUALITY_EXPORT must produce exactly one "
+                "[RL] FINALIZE_QUALITY record"
+            )
+
+        self._update_from_lines(
+            lines
+        )
+
+        return (
+            final_results[0],
+            quality_records[0],
+            self.state,
+        )
+
+    # ------------------------------------------------------------------
+
     def quit(self):
         if self.process.poll() is not None:
             return
