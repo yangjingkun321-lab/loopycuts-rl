@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 import sys
 
 from pathlib import Path
@@ -249,4 +250,56 @@ print(
 
 print(
     "PASS: deterministic evaluator unit contract"
+)
+
+# ----------------------------------------------------------------------
+# Direct script entrypoint must resolve repository imports.
+#
+# This catches the difference between:
+#
+#     import evaluation.run_...
+#
+# and:
+#
+#     python evaluation/run_....py
+#
+# --help exits before any evaluation work is started.
+# ----------------------------------------------------------------------
+
+entrypoint = subprocess.run(
+    [
+        sys.executable,
+        str(
+            PROJECT_ROOT
+            /
+            "evaluation"
+            /
+            "run_seed42_train48_deterministic_v1.py"
+        ),
+        "--help",
+    ],
+    cwd=str(
+        PROJECT_ROOT
+    ),
+    text=True,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+)
+
+if entrypoint.returncode != 0:
+    raise AssertionError(
+        "Direct evaluator entrypoint failed:\n"
+        f"STDOUT:\n{entrypoint.stdout}\n"
+        f"STDERR:\n{entrypoint.stderr}"
+    )
+
+assert (
+    "usage:"
+    in
+    entrypoint.stdout.lower()
+)
+
+print(
+    "PASS: evaluator direct script entrypoint "
+    "resolves repository imports"
 )

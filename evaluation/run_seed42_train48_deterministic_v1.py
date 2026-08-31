@@ -6,6 +6,7 @@ import json
 import os
 import statistics
 import subprocess
+import sys
 import traceback
 
 from collections import Counter
@@ -13,6 +14,19 @@ from pathlib import Path
 
 import numpy as np
 import torch
+
+
+PROJECT_ROOT = (
+    Path(__file__)
+    .resolve()
+    .parents[1]
+)
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(
+        0,
+        str(PROJECT_ROOT),
+    )
 
 
 from bridge.cpp_client import (
@@ -93,13 +107,6 @@ TRAINING_DATASET_NAME = "Train49"
 OPERATIONAL_DATASET_NAME = "Train48"
 
 EXCLUDED_MODEL = "boat"
-
-
-PROJECT_ROOT = (
-    Path(__file__)
-    .resolve()
-    .parents[1]
-)
 
 
 EVALUATION_ROOT = Path(
