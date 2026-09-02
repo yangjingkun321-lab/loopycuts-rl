@@ -3,12 +3,11 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import sys
 import traceback
 
 from dataclasses import dataclass
 from pathlib import Path
-
-import evaluation.run_seed42_train48_deterministic_v1 as base
 
 
 PROJECT_ROOT = (
@@ -16,6 +15,16 @@ PROJECT_ROOT = (
     .resolve()
     .parents[1]
 )
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(
+        0,
+        str(PROJECT_ROOT),
+    )
+
+
+import evaluation.run_seed42_train48_deterministic_v1 as base
+
 
 SEED = 42
 

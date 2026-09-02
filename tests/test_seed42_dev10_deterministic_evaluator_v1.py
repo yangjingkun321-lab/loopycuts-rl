@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 import sys
 
 from pathlib import Path
@@ -268,7 +269,48 @@ def test_dev10_summary_semantics():
         not in summary
     )
 
+
+def test_dev10_direct_cli_help():
+    script = (
+        PROJECT_ROOT
+        /
+        "evaluation"
+        /
+        "run_seed42_dev10_deterministic_v1.py"
+    )
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--help",
+        ],
+        cwd=PROJECT_ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+
+    assert (
+        completed.returncode
+        ==
+        0
+    ), completed.stdout
+
+    assert (
+        "--preflight-only"
+        in completed.stdout
+    )
+
+
 def main():
+    test_dev10_direct_cli_help()
+
+    print(
+        "PASS: direct Dev10 CLI import/--help"
+    )
+
     test_dev10_frozen_input_identities()
 
     print(
